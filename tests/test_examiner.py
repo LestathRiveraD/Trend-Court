@@ -161,7 +161,7 @@ def test_results_round_trip_through_json():
     for res in (examiner.theil_sen(t, y), examiner.ols(t, y)):
         d = res.to_dict()
         assert all(type(v) in (float, int, str) for v in d.values())
-        back = json.loads(json.dumps(d))
+        back = json.loads(json.dumps(d, allow_nan=False))
         assert back == d
         assert type(res)(**back) == res
 
@@ -171,3 +171,35 @@ def test_rejects_mismatched_or_too_short_input():
         examiner.theil_sen([1.0, 2.0, 3.0], [1.0, 2.0])
     with pytest.raises(ValueError):
         examiner.ols([1.0, 2.0, np.nan], [1.0, 2.0, 3.0])
+
+
+@pytest.mark.parametrize("fn", [examiner.theil_sen, examiner.ols])
+@pytest.mark.parametrize("where", ["y", "t"])
+@pytest.mark.parametrize("value", [np.inf, -np.inf])
+def test_rejects_infinite_values(fn, where, value):
+    t, y = random_series()
+    t, y = t.copy(), y.copy()
+    (y if where == "y" else t)[7] = value
+    with pytest.raises(ValueError, match="infinite"):
+        fn(t, y)
+
+
+@pytest.mark.parametrize("fn", [examiner.theil_sen, examiner.ols])
+def test_rejects_single_distinct_time(fn):
+    with pytest.raises(ValueError, match="distinct"):
+        fn([2000.0] * 3, [1.0, 2.0, 3.0])
+    # Distinct times only before NaN-dropping still counts as degenerate.
+    with pytest.raises(ValueError, match="distinct"):
+        fn([2000.0, 2000.0, 2000.0, 2001.0], [1.0, 2.0, 3.0, np.nan])
+
+
+def test_to_dict_is_strict_json_with_nan_fields():
+    t, _ = random_series()
+    res = examiner.ols(t, np.ones(len(t)))  # constant y: r, p, stderr are NaN
+    assert np.isnan(res.r) and np.isnan(res.p)
+    d = res.to_dict()
+    assert d["r"] is None and d["p"] is None
+    assert d["stderr"] is None and d["intercept_stderr"] is None
+    assert d["slope"] == res.slope  # finite fields untouched
+    text = json.dumps(d, allow_nan=False)
+    assert json.loads(text) == d

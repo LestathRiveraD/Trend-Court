@@ -16,12 +16,19 @@ Usage (``project.md`` §3, step 5, plus the OLS slope for the KNMI check)::
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass
 
 import numpy as np
 from scipy import stats
 
 DECADE = 10.0
+
+
+def _json_safe(d: dict) -> dict:
+    """Map non-finite floats to ``None`` so ``json.dumps`` emits ``null``
+    (strict JSON) instead of the invalid tokens ``NaN`` / ``Infinity``."""
+    return {k: (None if isinstance(v, float) and not math.isfinite(v) else v) for k, v in d.items()}
 
 
 @dataclass(frozen=True)
@@ -49,7 +56,8 @@ class SlopeResult:
     t_end: float
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        """Plain dict for strict JSON; non-finite floats become ``None``."""
+        return _json_safe(asdict(self))
 
 
 @dataclass(frozen=True)
@@ -74,19 +82,29 @@ class OLSResult:
     t_end: float
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        """Plain dict for strict JSON; non-finite floats become ``None``."""
+        return _json_safe(asdict(self))
 
 
 def _clean(t_years, y) -> tuple[np.ndarray, np.ndarray]:
-    """Float arrays with every pair containing a NaN dropped."""
+    """Float arrays with every pair containing a NaN dropped.
+
+    NaN means "missing" and is dropped; ±inf is bad data and raises.
+    Raises if fewer than 3 pairs or fewer than 2 distinct times remain,
+    since scipy would otherwise return an all-NaN fit.
+    """
     t = np.asarray(t_years, dtype=float)
     y = np.asarray(y, dtype=float)
     if t.ndim != 1 or t.shape != y.shape:
         raise ValueError(f"t_years and y must be 1-D and the same length; got {t.shape} and {y.shape}")
+    if np.isinf(t).any() or np.isinf(y).any():
+        raise ValueError("t_years and y must not contain infinite values")
     keep = ~(np.isnan(t) | np.isnan(y))
     t, y = t[keep], y[keep]
     if len(t) < 3:
         raise ValueError(f"need at least 3 non-NaN points, got {len(t)}")
+    if np.unique(t).size < 2:
+        raise ValueError("need at least 2 distinct times after dropping NaN")
     return t, y
 
 
