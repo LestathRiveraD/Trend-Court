@@ -1,0 +1,77 @@
+{
+ "dataset": "GLDAS_NOAH025_M v2.0",
+ "variables": [
+  "SoilMoi0_10cm_inst",
+  "SoilMoi10_40cm_inst",
+  "RootMoist_inst",
+  "Evap_tavg"
+ ],
+ "access": "OPeNDAP (opendap.earthdata.nasa.gov) subset per granule; granules from CMR",
+ "accessed_utc": "2026-11-14T08:49:23+00:00",
+ "granules": 408,
+ "first": "198101",
+ "last": "201412",
+ "region_index_slices": {
+  "mexicali": [
+   [
+    368,
+    371
+   ],
+   [
+    256,
+    260
+   ]
+  ],
+  "mexico_city": [
+   [
+    316,
+    318
+   ],
+   [
+    322,
+    324
+   ]
+  ],
+  "yucatan": [
+   [
+    320,
+    325
+   ],
+   [
+    360,
+    367
+   ]
+  ],
+  "sahel": [
+   [
+    290,
+    297
+   ],
+   [
+    724,
+    731
+   ]
+  ],
+  "amazon": [
+   [
+    224,
+    231
+   ],
+   [
+    476,
+    483
+   ]
+  ],
+  "iberia": [
+   [
+    398,
+    405
+   ],
+   [
+    702,
+    709
+   ]
+  ]
+ },
+ "example_url": "https://opendap.earthdata.nasa.gov/collections/C1233767569-GES_DISC/granules/GLDAS_NOAH025_M.2.0%3AGLDAS_NOAH025_M.A198101.020.nc4"
+}

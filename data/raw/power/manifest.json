@@ -1,0 +1,391 @@
+{
+ "source": "NASA POWER Monthly & Annual API",
+ "api": "https://power.larc.nasa.gov/api/temporal/monthly/point",
+ "parameters": [
+  "GWETROOT",
+  "PRECTOTCORR",
+  "T2M"
+ ],
+ "accessed_utc": "2026-11-14T08:20:15+00:00",
+ "fill_value": -999.0,
+ "files": [
+  {
+   "region": "mexicali",
+   "lat": 32.1,
+   "lon": -115.8,
+   "path": "data/raw/power/mexicali/+32.1000_-115.8000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=32.1&longitude=-115.8&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexicali",
+   "lat": 32.1,
+   "lon": -115.4,
+   "path": "data/raw/power/mexicali/+32.1000_-115.4000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=32.1&longitude=-115.4&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexicali",
+   "lat": 32.1,
+   "lon": -115.0,
+   "path": "data/raw/power/mexicali/+32.1000_-115.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=32.1&longitude=-115.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexicali",
+   "lat": 32.5,
+   "lon": -115.8,
+   "path": "data/raw/power/mexicali/+32.5000_-115.8000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=32.5&longitude=-115.8&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexicali",
+   "lat": 32.5,
+   "lon": -115.4,
+   "path": "data/raw/power/mexicali/+32.5000_-115.4000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=32.5&longitude=-115.4&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexicali",
+   "lat": 32.5,
+   "lon": -115.0,
+   "path": "data/raw/power/mexicali/+32.5000_-115.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=32.5&longitude=-115.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexicali",
+   "lat": 32.9,
+   "lon": -115.8,
+   "path": "data/raw/power/mexicali/+32.9000_-115.8000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=32.9&longitude=-115.8&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexicali",
+   "lat": 32.9,
+   "lon": -115.4,
+   "path": "data/raw/power/mexicali/+32.9000_-115.4000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=32.9&longitude=-115.4&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexicali",
+   "lat": 32.9,
+   "lon": -115.0,
+   "path": "data/raw/power/mexicali/+32.9000_-115.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=32.9&longitude=-115.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexico_city",
+   "lat": 19.1333,
+   "lon": -99.3667,
+   "path": "data/raw/power/mexico_city/+19.1333_-099.3667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=19.1333&longitude=-99.3667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexico_city",
+   "lat": 19.1333,
+   "lon": -99.1,
+   "path": "data/raw/power/mexico_city/+19.1333_-099.1000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=19.1333&longitude=-99.1&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexico_city",
+   "lat": 19.1333,
+   "lon": -98.8333,
+   "path": "data/raw/power/mexico_city/+19.1333_-098.8333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=19.1333&longitude=-98.8333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexico_city",
+   "lat": 19.4,
+   "lon": -99.3667,
+   "path": "data/raw/power/mexico_city/+19.4000_-099.3667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=19.4&longitude=-99.3667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexico_city",
+   "lat": 19.4,
+   "lon": -99.1,
+   "path": "data/raw/power/mexico_city/+19.4000_-099.1000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=19.4&longitude=-99.1&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexico_city",
+   "lat": 19.4,
+   "lon": -98.8333,
+   "path": "data/raw/power/mexico_city/+19.4000_-098.8333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=19.4&longitude=-98.8333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexico_city",
+   "lat": 19.6667,
+   "lon": -99.3667,
+   "path": "data/raw/power/mexico_city/+19.6667_-099.3667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=19.6667&longitude=-99.3667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexico_city",
+   "lat": 19.6667,
+   "lon": -99.1,
+   "path": "data/raw/power/mexico_city/+19.6667_-099.1000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=19.6667&longitude=-99.1&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "mexico_city",
+   "lat": 19.6667,
+   "lon": -98.8333,
+   "path": "data/raw/power/mexico_city/+19.6667_-098.8333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=19.6667&longitude=-98.8333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "yucatan",
+   "lat": 20.25,
+   "lon": -89.6667,
+   "path": "data/raw/power/yucatan/+20.2500_-089.6667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=20.25&longitude=-89.6667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "yucatan",
+   "lat": 20.25,
+   "lon": -89.0,
+   "path": "data/raw/power/yucatan/+20.2500_-089.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=20.25&longitude=-89.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "yucatan",
+   "lat": 20.25,
+   "lon": -88.3333,
+   "path": "data/raw/power/yucatan/+20.2500_-088.3333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=20.25&longitude=-88.3333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "yucatan",
+   "lat": 20.75,
+   "lon": -89.6667,
+   "path": "data/raw/power/yucatan/+20.7500_-089.6667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=20.75&longitude=-89.6667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "yucatan",
+   "lat": 20.75,
+   "lon": -89.0,
+   "path": "data/raw/power/yucatan/+20.7500_-089.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=20.75&longitude=-89.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "yucatan",
+   "lat": 20.75,
+   "lon": -88.3333,
+   "path": "data/raw/power/yucatan/+20.7500_-088.3333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=20.75&longitude=-88.3333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "yucatan",
+   "lat": 21.25,
+   "lon": -89.6667,
+   "path": "data/raw/power/yucatan/+21.2500_-089.6667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=21.25&longitude=-89.6667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "yucatan",
+   "lat": 21.25,
+   "lon": -89.0,
+   "path": "data/raw/power/yucatan/+21.2500_-089.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=21.25&longitude=-89.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "yucatan",
+   "lat": 21.25,
+   "lon": -88.3333,
+   "path": "data/raw/power/yucatan/+21.2500_-088.3333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=21.25&longitude=-88.3333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "sahel",
+   "lat": 12.8333,
+   "lon": 1.3333,
+   "path": "data/raw/power/sahel/+12.8333_+001.3333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=12.8333&longitude=1.3333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "sahel",
+   "lat": 12.8333,
+   "lon": 2.0,
+   "path": "data/raw/power/sahel/+12.8333_+002.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=12.8333&longitude=2.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "sahel",
+   "lat": 12.8333,
+   "lon": 2.6667,
+   "path": "data/raw/power/sahel/+12.8333_+002.6667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=12.8333&longitude=2.6667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "sahel",
+   "lat": 13.5,
+   "lon": 1.3333,
+   "path": "data/raw/power/sahel/+13.5000_+001.3333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=13.5&longitude=1.3333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "sahel",
+   "lat": 13.5,
+   "lon": 2.0,
+   "path": "data/raw/power/sahel/+13.5000_+002.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=13.5&longitude=2.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "sahel",
+   "lat": 13.5,
+   "lon": 2.6667,
+   "path": "data/raw/power/sahel/+13.5000_+002.6667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=13.5&longitude=2.6667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "sahel",
+   "lat": 14.1667,
+   "lon": 1.3333,
+   "path": "data/raw/power/sahel/+14.1667_+001.3333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=14.1667&longitude=1.3333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "sahel",
+   "lat": 14.1667,
+   "lon": 2.0,
+   "path": "data/raw/power/sahel/+14.1667_+002.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=14.1667&longitude=2.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "sahel",
+   "lat": 14.1667,
+   "lon": 2.6667,
+   "path": "data/raw/power/sahel/+14.1667_+002.6667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=14.1667&longitude=2.6667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "amazon",
+   "lat": -3.6667,
+   "lon": -60.6667,
+   "path": "data/raw/power/amazon/-03.6667_-060.6667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=-3.6667&longitude=-60.6667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "amazon",
+   "lat": -3.6667,
+   "lon": -60.0,
+   "path": "data/raw/power/amazon/-03.6667_-060.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=-3.6667&longitude=-60.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "amazon",
+   "lat": -3.6667,
+   "lon": -59.3333,
+   "path": "data/raw/power/amazon/-03.6667_-059.3333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=-3.6667&longitude=-59.3333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "amazon",
+   "lat": -3.0,
+   "lon": -60.6667,
+   "path": "data/raw/power/amazon/-03.0000_-060.6667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=-3.0&longitude=-60.6667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "amazon",
+   "lat": -3.0,
+   "lon": -60.0,
+   "path": "data/raw/power/amazon/-03.0000_-060.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=-3.0&longitude=-60.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "amazon",
+   "lat": -3.0,
+   "lon": -59.3333,
+   "path": "data/raw/power/amazon/-03.0000_-059.3333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=-3.0&longitude=-59.3333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "amazon",
+   "lat": -2.3333,
+   "lon": -60.6667,
+   "path": "data/raw/power/amazon/-02.3333_-060.6667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=-2.3333&longitude=-60.6667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "amazon",
+   "lat": -2.3333,
+   "lon": -60.0,
+   "path": "data/raw/power/amazon/-02.3333_-060.0000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=-2.3333&longitude=-60.0&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "amazon",
+   "lat": -2.3333,
+   "lon": -59.3333,
+   "path": "data/raw/power/amazon/-02.3333_-059.3333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=-2.3333&longitude=-59.3333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "iberia",
+   "lat": 39.8333,
+   "lon": -4.1667,
+   "path": "data/raw/power/iberia/+39.8333_-004.1667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=39.8333&longitude=-4.1667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "iberia",
+   "lat": 39.8333,
+   "lon": -3.5,
+   "path": "data/raw/power/iberia/+39.8333_-003.5000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=39.8333&longitude=-3.5&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "iberia",
+   "lat": 39.8333,
+   "lon": -2.8333,
+   "path": "data/raw/power/iberia/+39.8333_-002.8333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=39.8333&longitude=-2.8333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "iberia",
+   "lat": 40.5,
+   "lon": -4.1667,
+   "path": "data/raw/power/iberia/+40.5000_-004.1667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=40.5&longitude=-4.1667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "iberia",
+   "lat": 40.5,
+   "lon": -3.5,
+   "path": "data/raw/power/iberia/+40.5000_-003.5000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=40.5&longitude=-3.5&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "iberia",
+   "lat": 40.5,
+   "lon": -2.8333,
+   "path": "data/raw/power/iberia/+40.5000_-002.8333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=40.5&longitude=-2.8333&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "iberia",
+   "lat": 41.1667,
+   "lon": -4.1667,
+   "path": "data/raw/power/iberia/+41.1667_-004.1667.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=41.1667&longitude=-4.1667&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "iberia",
+   "lat": 41.1667,
+   "lon": -3.5,
+   "path": "data/raw/power/iberia/+41.1667_-003.5000.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=41.1667&longitude=-3.5&start=1981&end=2025&format=JSON"
+  },
+  {
+   "region": "iberia",
+   "lat": 41.1667,
+   "lon": -2.8333,
+   "path": "data/raw/power/iberia/+41.1667_-002.8333.json",
+   "url": "https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=GWETROOT%2CPRECTOTCORR%2CT2M&community=AG&latitude=41.1667&longitude=-2.8333&start=1981&end=2025&format=JSON"
+  }
+ ]
+}

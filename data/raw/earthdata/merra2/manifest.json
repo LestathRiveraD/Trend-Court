@@ -1,0 +1,74 @@
+{
+ "dataset": "M2TMNXSLV v5.12.4",
+ "variables": [
+  "T2M"
+ ],
+ "access": "OPeNDAP (opendap.earthdata.nasa.gov) subset per granule; granules from CMR",
+ "accessed_utc": "2026-11-14T09:29:42+00:00",
+ "granules": 540,
+ "first": "198101",
+ "last": "202512",
+ "region_index_slices": {
+  "mexicali": [
+   [
+    244,
+    246
+   ],
+   [
+    103,
+    104
+   ]
+  ],
+  "mexico_city": [
+   [
+    218,
+    219
+   ],
+   [
+    129,
+    130
+   ]
+  ],
+  "yucatan": [
+   [
+    220,
+    223
+   ],
+   [
+    144,
+    147
+   ]
+  ],
+  "sahel": [
+   [
+    205,
+    209
+   ],
+   [
+    290,
+    292
+   ]
+  ],
+  "amazon": [
+   [
+    172,
+    176
+   ],
+   [
+    191,
+    193
+   ]
+  ],
+  "iberia": [
+   [
+    259,
+    263
+   ],
+   [
+    281,
+    284
+   ]
+  ]
+ },
+ "example_url": "https://opendap.earthdata.nasa.gov/collections/C1276812859-GES_DISC/granules/M2TMNXSLV.5.12.4%3AMERRA2_100.tavgM_2d_slv_Nx.198101.nc4"
+}

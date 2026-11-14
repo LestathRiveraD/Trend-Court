@@ -1,0 +1,77 @@
+{
+ "dataset": "FLDAS_NOAH01_C_GL_M v001",
+ "variables": [
+  "SoilMoi00_10cm_tavg",
+  "SoilMoi10_40cm_tavg",
+  "SoilMoi40_100cm_tavg",
+  "Evap_tavg"
+ ],
+ "access": "OPeNDAP (opendap.earthdata.nasa.gov) subset per granule; granules from CMR",
+ "accessed_utc": "2026-11-14T09:11:48+00:00",
+ "granules": 528,
+ "first": "198201",
+ "last": "202512",
+ "region_index_slices": {
+  "mexicali": [
+   [
+    919,
+    930
+   ],
+   [
+    640,
+    651
+   ]
+  ],
+  "mexico_city": [
+   [
+    790,
+    797
+   ],
+   [
+    805,
+    812
+   ]
+  ],
+  "yucatan": [
+   [
+    800,
+    814
+   ],
+   [
+    900,
+    919
+   ]
+  ],
+  "sahel": [
+   [
+    725,
+    744
+   ],
+   [
+    1810,
+    1829
+   ]
+  ],
+  "amazon": [
+   [
+    560,
+    579
+   ],
+   [
+    1190,
+    1209
+   ]
+  ],
+  "iberia": [
+   [
+    995,
+    1014
+   ],
+   [
+    1755,
+    1774
+   ]
+  ]
+ },
+ "example_url": "https://opendap.earthdata.nasa.gov/collections/C1563089663-GES_DISC/granules/FLDAS_NOAH01_C_GL_M.001%3AFLDAS_NOAH01_C_GL_M.A198201.001.nc"
+}

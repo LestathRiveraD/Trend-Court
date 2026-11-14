@@ -1,0 +1,75 @@
+{
+ "dataset": "GPCPMON v3.2",
+ "variables": [
+  "sat_gauge_precip",
+  "gauge_relative_weight"
+ ],
+ "access": "OPeNDAP (opendap.earthdata.nasa.gov) subset per granule; granules from CMR",
+ "accessed_utc": "2026-11-14T09:22:36+00:00",
+ "granules": 492,
+ "first": "198301",
+ "last": "202312",
+ "region_index_slices": {
+  "mexicali": [
+   [
+    114,
+    115
+   ],
+   [
+    128,
+    129
+   ]
+  ],
+  "mexico_city": [
+   [
+    140,
+    141
+   ],
+   [
+    161,
+    162
+   ]
+  ],
+  "yucatan": [
+   [
+    137,
+    139
+   ],
+   [
+    180,
+    183
+   ]
+  ],
+  "sahel": [
+   [
+    151,
+    154
+   ],
+   [
+    362,
+    365
+   ]
+  ],
+  "amazon": [
+   [
+    184,
+    187
+   ],
+   [
+    238,
+    241
+   ]
+  ],
+  "iberia": [
+   [
+    97,
+    100
+   ],
+   [
+    351,
+    354
+   ]
+  ]
+ },
+ "example_url": "https://opendap.earthdata.nasa.gov/collections/C2211412414-GES_DISC/granules/GPCPMON.3.2%3AGPCPMON_L3_198301_V3.2.nc4"
+}

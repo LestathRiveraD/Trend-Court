@@ -1,0 +1,94 @@
+{
+ "source": "NOAA PSL THREDDS NetCDF Subset Service",
+ "accessed_utc": "2026-11-14T08:22:05+00:00",
+ "datasets": {
+  "ghcncams": "NOAA/CPC GHCN_CAMS monthly 2 m temperature (K), 0.5 deg",
+  "gpcp_v23": "GPCP V2.3 monthly precipitation (mm/day), 2.5 deg"
+ },
+ "files": [
+  {
+   "dataset": "ghcncams",
+   "region": "mexicali",
+   "path": "data/raw/witness/ghcncams/mexicali.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/ghcncams/air.mon.mean.nc?var=air&north=33.35&south=31.65&west=-116.25&east=-114.55&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 41360
+  },
+  {
+   "dataset": "ghcncams",
+   "region": "mexico_city",
+   "path": "data/raw/witness/ghcncams/mexico_city.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/ghcncams/air.mon.mean.nc?var=air&north=20.05&south=18.75&west=-99.75&east=-98.45&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 41360
+  },
+  {
+   "dataset": "ghcncams",
+   "region": "yucatan",
+   "path": "data/raw/witness/ghcncams/yucatan.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/ghcncams/air.mon.mean.nc?var=air&north=21.75&south=19.75&west=-90.25&east=-87.75&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 71668
+  },
+  {
+   "dataset": "ghcncams",
+   "region": "sahel",
+   "path": "data/raw/witness/ghcncams/sahel.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/ghcncams/air.mon.mean.nc?var=air&north=14.75&south=12.25&west=0.75&east=3.25&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 84656
+  },
+  {
+   "dataset": "ghcncams",
+   "region": "amazon",
+   "path": "data/raw/witness/ghcncams/amazon.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/ghcncams/air.mon.mean.nc?var=air&north=-1.75&south=-4.25&west=-61.25&east=-58.75&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 84656
+  },
+  {
+   "dataset": "ghcncams",
+   "region": "iberia",
+   "path": "data/raw/witness/ghcncams/iberia.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/ghcncams/air.mon.mean.nc?var=air&north=41.75&south=39.25&west=-4.75&east=-2.25&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 84656
+  },
+  {
+   "dataset": "gpcp_v23",
+   "region": "mexicali",
+   "path": "data/raw/witness/gpcp_v23/mexicali.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/gpcp/precip.mon.mean.nc?var=precip&north=34.35&south=30.65&west=-117.25&east=-113.55&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 17236
+  },
+  {
+   "dataset": "gpcp_v23",
+   "region": "mexico_city",
+   "path": "data/raw/witness/gpcp_v23/mexico_city.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/gpcp/precip.mon.mean.nc?var=precip&north=21.05&south=17.75&west=-100.75&east=-97.45&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 21568
+  },
+  {
+   "dataset": "gpcp_v23",
+   "region": "yucatan",
+   "path": "data/raw/witness/gpcp_v23/yucatan.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/gpcp/precip.mon.mean.nc?var=precip&north=22.75&south=18.75&west=-91.25&east=-86.75&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 28064
+  },
+  {
+   "dataset": "gpcp_v23",
+   "region": "sahel",
+   "path": "data/raw/witness/gpcp_v23/sahel.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/gpcp/precip.mon.mean.nc?var=precip&north=15.75&south=11.25&west=-0.25&east=4.25&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 28064
+  },
+  {
+   "dataset": "gpcp_v23",
+   "region": "amazon",
+   "path": "data/raw/witness/gpcp_v23/amazon.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/gpcp/precip.mon.mean.nc?var=precip&north=-0.75&south=-5.25&west=-62.25&east=-57.75&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 21568
+  },
+  {
+   "dataset": "gpcp_v23",
+   "region": "iberia",
+   "path": "data/raw/witness/gpcp_v23/iberia.nc",
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/gpcp/precip.mon.mean.nc?var=precip&north=42.75&south=38.25&west=-5.75&east=-1.25&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 28064
+  }
+ ]
+}
