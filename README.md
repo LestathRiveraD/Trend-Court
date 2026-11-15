@@ -11,6 +11,8 @@ Puts climate-trend claims on trial against NASA data (POWER, MERRA-2, GLDAS, FLD
 - `scripts/benchmark.py --experiment fpr`: false-positive rate on trend-free AR(1) noise; writes `docs/benchmark/fpr.json` (about 4–5 min with 12 processes, `--workers` sets the count)
 - `scripts/benchmark.py --experiment coverage`: share of Theil–Sen 95% intervals that contain an injected slope, flagging cells below 0.93; writes `docs/benchmark/coverage.json` (about 14 min with 12 processes)
 - `scripts/benchmark.py --experiment power`: Hamed–Rao rejection rate by record length, slope / noise SD and AR(1) phi; writes `docs/benchmark/power.json` (about 35 min with 12 processes)
+- `scripts/benchmark.py --figures`: no simulation; redraws `docs/benchmark/*.png` and the tables in `docs/benchmark.md` from the committed JSON
+- `trendcourt/thresholds.json`: calibrated verdict thresholds (alphas, autocorrelation caps, per-variable no-trend margins), reasoning in `docs/benchmark.md`; read only through `trendcourt/thresholds.py`
 - `trendcourt/case.py`: `trendcourt.examine(region, variable)`, the case JSON (`python -m trendcourt mexicali temperature`)
 - `data/`: raw downloads and region definitions
 - `docs/`: method notes; `docs/gate1/` holds the Gate 1 (a) reference case

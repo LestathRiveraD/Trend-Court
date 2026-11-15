@@ -25,6 +25,14 @@ length (20 to 45 years in steps of 5), slope / noise SD (0.1, 0.2, 0.3,
 Every experiment uses ``benchmark.synthetic_series`` and
 ``benchmark.run_case``; ``--seed`` defaults to the experiment's own
 master seed.
+
+    python scripts/benchmark.py --figures
+
+``--figures``: no simulation. Reads the committed ``docs/benchmark/*.json``
+and ``trendcourt/thresholds.json``, writes ``fpr_vs_phi.png``,
+``coverage_vs_phi.png`` and ``power_vs_years.png`` to ``docs/benchmark/``
+and regenerates the tables in ``docs/benchmark.md``
+(:mod:`trendcourt.benchmark_report`).
 """
 
 import argparse
@@ -130,14 +138,32 @@ def run_power(args) -> int:
     return 0
 
 
+def run_figures(args) -> int:
+    from trendcourt import benchmark_report, thresholds
+
+    results = benchmark_report.load_results()
+    for path in benchmark_report.write_figures(results):
+        print(f"wrote {path.relative_to(REPO)}", file=sys.stderr)
+    doc = benchmark_report.update_doc(results, thresholds.load())
+    print(f"updated tables in {doc.relative_to(REPO)}", file=sys.stderr)
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--experiment", required=True, choices=list(DEFAULTS))
+    mode = ap.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--experiment", choices=list(DEFAULTS))
+    mode.add_argument("--figures", action="store_true",
+                      help="figures and tables from the committed JSON (no simulation)")
     ap.add_argument("--replicates", type=int, default=None, help="default 1000")
     ap.add_argument("--seed", type=int, default=None, help="default: the experiment's master seed")
     ap.add_argument("--workers", type=int, default=os.cpu_count() or 1)
     ap.add_argument("--out", type=Path, default=None, help="default docs/benchmark/<experiment>.json")
     args = ap.parse_args(argv)
+    if args.figures:
+        if any(v is not None for v in (args.replicates, args.seed, args.out)):
+            ap.error("--figures takes no --replicates, --seed or --out")
+        return run_figures(args)
     replicates, seed = DEFAULTS[args.experiment]
     if args.replicates is None:
         args.replicates = replicates
