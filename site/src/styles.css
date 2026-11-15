@@ -31,7 +31,7 @@
   --c-anomaly: #4B3BFF;
   --c-trend: #FFC93C;
   --c-trend-casing: #1B1446;
-  --c-band: rgba(255,201,60,.35);
+  --c-band: rgba(255,201,60,.55);
   --c-witness: #FF5DAA;
   --c-grid: #E6EAF8;
 
@@ -92,8 +92,26 @@ button:focus-visible { outline: 3px solid var(--bubble); outline-offset: 3px; }
   background: var(--surface); border: var(--stroke); border-radius: var(--radius); box-shadow: var(--pop);
   padding: 18px; display: grid; gap: 12px; min-width: 0;
 }
-.clerk { font-size: 14.5px; color: var(--muted); }
-.plot { width: 100%; min-width: 0; min-height: 280px; overflow: hidden; }
+.evidence { display: grid; gap: 12px; min-width: 0; }
+.role { font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--indigo); }
+.clerk { display: grid; gap: 4px; font-size: 14.5px; color: var(--muted); }
+.facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; padding: 0; list-style: none; }
+.facts li { font-family: var(--mono); font-size: 12px; color: var(--ink); background: var(--sky); border-radius: 999px; padding: 2px 10px; }
+.tabs { display: flex; gap: 8px; }
+.tab {
+  font: inherit; font-family: var(--display); font-weight: 600; color: var(--ink); cursor: pointer;
+  background: var(--surface); border: var(--stroke); border-radius: 999px; padding: 4px 14px;
+}
+.tab[aria-selected="true"] { background: var(--indigo); color: var(--surface); }
+.tab:focus-visible { outline: 3px solid var(--bubble); outline-offset: 3px; }
+.tabpanel { display: grid; gap: 6px; min-width: 0; }
+.explain { font-size: 14px; color: var(--muted); }
+.examiner { display: grid; gap: 4px; border-top: 2px dashed var(--line); padding-top: 10px; }
+.finding { font-size: 17px; }
+.finding strong { font-family: var(--display); font-weight: 700; font-size: 20px; }
+.small { font-size: 13px; }
+.nowrap { white-space: nowrap; }
+.plot { width: 100%; min-width: 0; min-height: 300px; overflow: hidden; }
 
 .pill {
   display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 999px; border: var(--stroke);
