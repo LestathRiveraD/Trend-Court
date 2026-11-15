@@ -1,0 +1,1401 @@
+{
+  "experiment": "coverage",
+  "description": "Coverage of the Theil-Sen 95% interval (examiner.theil_sen defaults: confidence 0.95, method='separate') on monthly series with a known linear trend, seasonal cycle and stationary AR(1) noise, through trendcourt.benchmark.run_case (Theil-Sen on clerk.deseasonalize anomalies). A replicate covers when low <= true slope <= high. 'below_flag' means the coverage estimate is below 0.93; 'below_nominal' means the whole exact 95% binomial interval lies below 0.95. miss_low counts intervals entirely below the true slope, miss_high entirely above.",
+  "grid": {
+    "phi": [
+      0.0,
+      0.3,
+      0.6,
+      0.8,
+      0.9
+    ],
+    "slope_per_decade": [
+      0.1,
+      0.3,
+      0.5
+    ],
+    "n_years": [
+      20,
+      30,
+      45
+    ]
+  },
+  "replicates": 1000,
+  "nominal": 0.95,
+  "flag_below": 0.93,
+  "series": {
+    "start": "1981-01",
+    "sigma": 1.0,
+    "seasonal_amp": 10.0,
+    "burn_in": 600,
+    "sigma_meaning": "stationary standard deviation of the AR(1) noise",
+    "slope_units": "noise SDs per decade (sigma = 1, so also units of the series per decade)"
+  },
+  "seeds": {
+    "master": 18,
+    "scheme": "numpy.random.default_rng((master, round(1000 * phi), round(1000 * slope), n_years, replicate))",
+    "replicate_range": [
+      0,
+      999
+    ]
+  },
+  "ci": {
+    "level": 0.95,
+    "method": "Clopper-Pearson (scipy.stats.binomtest, method='exact')"
+  },
+  "cells": [
+    {
+      "phi": 0.0,
+      "slope_per_decade": 0.1,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 944,
+        "rate": 0.944,
+        "ci95": [
+          0.9278922537167472,
+          0.9574244503133829
+        ]
+      },
+      "miss_low": 28,
+      "miss_high": 28,
+      "slope_mean_per_decade": 0.09678290408489566,
+      "slope_median_per_decade": 0.0966670942888119,
+      "width_median_per_decade": 0.4407166836534294,
+      "below_flag": false,
+      "below_nominal": false
+    },
+    {
+      "phi": 0.0,
+      "slope_per_decade": 0.1,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 953,
+        "rate": 0.953,
+        "ci95": [
+          0.9379873693066948,
+          0.965264937733204
+        ]
+      },
+      "miss_low": 22,
+      "miss_high": 25,
+      "slope_mean_per_decade": 0.10038978589693892,
+      "slope_median_per_decade": 0.10091422925101616,
+      "width_median_per_decade": 0.2413050365921734,
+      "below_flag": false,
+      "below_nominal": false
+    },
+    {
+      "phi": 0.0,
+      "slope_per_decade": 0.1,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 958,
+        "rate": 0.958,
+        "ci95": [
+          0.9436497084242552,
+          0.96956529373686
+        ]
+      },
+      "miss_low": 18,
+      "miss_high": 24,
+      "slope_mean_per_decade": 0.10076203318473487,
+      "slope_median_per_decade": 0.09981604487559982,
+      "width_median_per_decade": 0.13159530558198995,
+      "below_flag": false,
+      "below_nominal": false
+    },
+    {
+      "phi": 0.0,
+      "slope_per_decade": 0.3,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 947,
+        "rate": 0.947,
+        "ci95": [
+          0.9312448167100368,
+          0.9600507476399807
+        ]
+      },
+      "miss_low": 15,
+      "miss_high": 38,
+      "slope_mean_per_decade": 0.3024559183058937,
+      "slope_median_per_decade": 0.30098192049614814,
+      "width_median_per_decade": 0.4399317416634829,
+      "below_flag": false,
+      "below_nominal": false
+    },
+    {
+      "phi": 0.0,
+      "slope_per_decade": 0.3,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 951,
+        "rate": 0.951,
+        "ci95": [
+          0.9357339468598304,
+          0.9635329408279522
+        ]
+      },
+      "miss_low": 27,
+      "miss_high": 22,
+      "slope_mean_per_decade": 0.29728774298164223,
+      "slope_median_per_decade": 0.29737197950969263,
+      "width_median_per_decade": 0.24110631251128772,
+      "below_flag": false,
+      "below_nominal": false
+    },
+    {
+      "phi": 0.0,
+      "slope_per_decade": 0.3,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 947,
+        "rate": 0.947,
+        "ci95": [
+          0.9312448167100368,
+          0.9600507476399807
+        ]
+      },
+      "miss_low": 21,
+      "miss_high": 32,
+      "slope_mean_per_decade": 0.3002260378702285,
+      "slope_median_per_decade": 0.29918166130871043,
+      "width_median_per_decade": 0.13209322522683511,
+      "below_flag": false,
+      "below_nominal": false
+    },
+    {
+      "phi": 0.0,
+      "slope_per_decade": 0.5,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 954,
+        "rate": 0.954,
+        "ci95": [
+          0.9391164472862573,
+          0.9661285014523221
+        ]
+      },
+      "miss_low": 24,
+      "miss_high": 22,
+      "slope_mean_per_decade": 0.49959715651363124,
+      "slope_median_per_decade": 0.501882368993249,
+      "width_median_per_decade": 0.4408626245580166,
+      "below_flag": false,
+      "below_nominal": false
+    },
+    {
+      "phi": 0.0,
+      "slope_per_decade": 0.5,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 963,
+        "rate": 0.963,
+        "ci95": [
+          0.9493588769400751,
+          0.9738172911562627
+        ]
+      },
+      "miss_low": 20,
+      "miss_high": 17,
+      "slope_mean_per_decade": 0.5011772683370057,
+      "slope_median_per_decade": 0.5012947565397904,
+      "width_median_per_decade": 0.24087729239518185,
+      "below_flag": false,
+      "below_nominal": false
+    },
+    {
+      "phi": 0.0,
+      "slope_per_decade": 0.5,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 949,
+        "rate": 0.949,
+        "ci95": [
+          0.9334865384050651,
+          0.9617947632253139
+        ]
+      },
+      "miss_low": 23,
+      "miss_high": 28,
+      "slope_mean_per_decade": 0.49930947170932277,
+      "slope_median_per_decade": 0.4998000409382358,
+      "width_median_per_decade": 0.13158706451255697,
+      "below_flag": false,
+      "below_nominal": false
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.1,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 861,
+        "rate": 0.861,
+        "ci95": [
+          0.8379954961445099,
+          0.881854147235034
+        ]
+      },
+      "miss_low": 65,
+      "miss_high": 74,
+      "slope_mean_per_decade": 0.10210175686271819,
+      "slope_median_per_decade": 0.09941242038898654,
+      "width_median_per_decade": 0.441294366366726,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.1,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 846,
+        "rate": 0.846,
+        "ci95": [
+          0.8221145194721243,
+          0.8678269716273468
+        ]
+      },
+      "miss_low": 71,
+      "miss_high": 83,
+      "slope_mean_per_decade": 0.10380692540649064,
+      "slope_median_per_decade": 0.10480528048534915,
+      "width_median_per_decade": 0.24109856768062835,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.1,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 856,
+        "rate": 0.856,
+        "ci95": [
+          0.8326930831842089,
+          0.877187248892484
+        ]
+      },
+      "miss_low": 64,
+      "miss_high": 80,
+      "slope_mean_per_decade": 0.1018549611456008,
+      "slope_median_per_decade": 0.10069947029627868,
+      "width_median_per_decade": 0.13156574622065165,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.3,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 846,
+        "rate": 0.846,
+        "ci95": [
+          0.8221145194721243,
+          0.8678269716273468
+        ]
+      },
+      "miss_low": 78,
+      "miss_high": 76,
+      "slope_mean_per_decade": 0.299052055716071,
+      "slope_median_per_decade": 0.2954256913159475,
+      "width_median_per_decade": 0.44000093996211076,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.3,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 863,
+        "rate": 0.863,
+        "ci95": [
+          0.8401190348945826,
+          0.8837183105663188
+        ]
+      },
+      "miss_low": 75,
+      "miss_high": 62,
+      "slope_mean_per_decade": 0.2958684286946251,
+      "slope_median_per_decade": 0.29522844660954534,
+      "width_median_per_decade": 0.24196981483239008,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.3,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 857,
+        "rate": 0.857,
+        "ci95": [
+          0.8337528434032783,
+          0.8781213571241084
+        ]
+      },
+      "miss_low": 77,
+      "miss_high": 66,
+      "slope_mean_per_decade": 0.2983919342061334,
+      "slope_median_per_decade": 0.2990687761345198,
+      "width_median_per_decade": 0.13189365782866042,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.5,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 843,
+        "rate": 0.843,
+        "ci95": [
+          0.8189474466392858,
+          0.8650123407930691
+        ]
+      },
+      "miss_low": 77,
+      "miss_high": 80,
+      "slope_mean_per_decade": 0.5028019538855287,
+      "slope_median_per_decade": 0.4986416030918741,
+      "width_median_per_decade": 0.4393821780842211,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.5,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 829,
+        "rate": 0.829,
+        "ci95": [
+          0.8042047464024096,
+          0.851840151816802
+        ]
+      },
+      "miss_low": 94,
+      "miss_high": 77,
+      "slope_mean_per_decade": 0.4981138511717315,
+      "slope_median_per_decade": 0.49858999613222976,
+      "width_median_per_decade": 0.24120651094559936,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.5,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 850,
+        "rate": 0.85,
+        "ci95": [
+          0.826341871432964,
+          0.8715751888838271
+        ]
+      },
+      "miss_low": 71,
+      "miss_high": 79,
+      "slope_mean_per_decade": 0.5009207968515538,
+      "slope_median_per_decade": 0.5009863209128033,
+      "width_median_per_decade": 0.13194282058239237,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.1,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 648,
+        "rate": 0.648,
+        "ci95": [
+          0.6174971310654698,
+          0.6776283956454604
+        ]
+      },
+      "miss_low": 183,
+      "miss_high": 169,
+      "slope_mean_per_decade": 0.09480303706963525,
+      "slope_median_per_decade": 0.08534184200519279,
+      "width_median_per_decade": 0.4413960633722198,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.1,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 658,
+        "rate": 0.658,
+        "ci95": [
+          0.6276662332634243,
+          0.6874000715953352
+        ]
+      },
+      "miss_low": 174,
+      "miss_high": 168,
+      "slope_mean_per_decade": 0.09960533772897283,
+      "slope_median_per_decade": 0.10516609062540994,
+      "width_median_per_decade": 0.24087403480940792,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.1,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 677,
+        "rate": 0.677,
+        "ci95": [
+          0.6470276352361596,
+          0.70592606325204
+        ]
+      },
+      "miss_low": 171,
+      "miss_high": 152,
+      "slope_mean_per_decade": 0.09843828224822847,
+      "slope_median_per_decade": 0.09766252559284763,
+      "width_median_per_decade": 0.13179866683167635,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.3,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 666,
+        "rate": 0.666,
+        "ci95": [
+          0.6358119134360835,
+          0.6952069925690265
+        ]
+      },
+      "miss_low": 183,
+      "miss_high": 151,
+      "slope_mean_per_decade": 0.2894765409629614,
+      "slope_median_per_decade": 0.2913658916505737,
+      "width_median_per_decade": 0.43847095716861606,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.3,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 661,
+        "rate": 0.661,
+        "ci95": [
+          0.6307197702849167,
+          0.6903287623254493
+        ]
+      },
+      "miss_low": 156,
+      "miss_high": 183,
+      "slope_mean_per_decade": 0.30338084386727704,
+      "slope_median_per_decade": 0.3020551778871189,
+      "width_median_per_decade": 0.24047244536231915,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.3,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 669,
+        "rate": 0.669,
+        "ci95": [
+          0.6388689622688157,
+          0.6981321639231706
+        ]
+      },
+      "miss_low": 175,
+      "miss_high": 156,
+      "slope_mean_per_decade": 0.2989011291726217,
+      "slope_median_per_decade": 0.29816567751464773,
+      "width_median_per_decade": 0.1318044012346286,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.5,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 678,
+        "rate": 0.678,
+        "ci95": [
+          0.6480481447866293,
+          0.7068996236579649
+        ]
+      },
+      "miss_low": 169,
+      "miss_high": 153,
+      "slope_mean_per_decade": 0.4979332513358162,
+      "slope_median_per_decade": 0.4994443227037487,
+      "width_median_per_decade": 0.4398920832240093,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.5,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 679,
+        "rate": 0.679,
+        "ci95": [
+          0.6490688056336191,
+          0.707873032404677
+        ]
+      },
+      "miss_low": 163,
+      "miss_high": 158,
+      "slope_mean_per_decade": 0.4984750730160268,
+      "slope_median_per_decade": 0.4989834303357804,
+      "width_median_per_decade": 0.24030271622967628,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.5,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 677,
+        "rate": 0.677,
+        "ci95": [
+          0.6470276352361596,
+          0.70592606325204
+        ]
+      },
+      "miss_low": 159,
+      "miss_high": 164,
+      "slope_mean_per_decade": 0.4992707122104861,
+      "slope_median_per_decade": 0.49584803258356724,
+      "width_median_per_decade": 0.13128792670540623,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.1,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 464,
+        "rate": 0.464,
+        "ci95": [
+          0.4327356593739406,
+          0.49547685692812565
+        ]
+      },
+      "miss_low": 271,
+      "miss_high": 265,
+      "slope_mean_per_decade": 0.09986272096482689,
+      "slope_median_per_decade": 0.08627930220853375,
+      "width_median_per_decade": 0.43270622865946806,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.1,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 457,
+        "rate": 0.457,
+        "ci95": [
+          0.4257906203218765,
+          0.48846322441830325
+        ]
+      },
+      "miss_low": 268,
+      "miss_high": 275,
+      "slope_mean_per_decade": 0.10257495982230502,
+      "slope_median_per_decade": 0.10636303585177972,
+      "width_median_per_decade": 0.2393485264497256,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.1,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 498,
+        "rate": 0.498,
+        "ci95": [
+          0.46655532318584964,
+          0.5294564826459982
+        ]
+      },
+      "miss_low": 244,
+      "miss_high": 258,
+      "slope_mean_per_decade": 0.10244787462920733,
+      "slope_median_per_decade": 0.10533193191444098,
+      "width_median_per_decade": 0.1311696287964984,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.3,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 510,
+        "rate": 0.51,
+        "ci95": [
+          0.4785258413218877,
+          0.5414151292858821
+        ]
+      },
+      "miss_low": 247,
+      "miss_high": 243,
+      "slope_mean_per_decade": 0.2931476301891515,
+      "slope_median_per_decade": 0.30756692841675515,
+      "width_median_per_decade": 0.43523480682407456,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.3,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 526,
+        "rate": 0.526,
+        "ci95": [
+          0.4945142544123377,
+          0.5573322655259105
+        ]
+      },
+      "miss_low": 225,
+      "miss_high": 249,
+      "slope_mean_per_decade": 0.2985026148466984,
+      "slope_median_per_decade": 0.2982639583471951,
+      "width_median_per_decade": 0.2393142506991156,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.3,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 477,
+        "rate": 0.477,
+        "ci95": [
+          0.4456497803164617,
+          0.5084859896841312
+        ]
+      },
+      "miss_low": 253,
+      "miss_high": 270,
+      "slope_mean_per_decade": 0.30154318774415123,
+      "slope_median_per_decade": 0.3013777930370571,
+      "width_median_per_decade": 0.13132564717091957,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.5,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 510,
+        "rate": 0.51,
+        "ci95": [
+          0.4785258413218877,
+          0.5414151292858821
+        ]
+      },
+      "miss_low": 253,
+      "miss_high": 237,
+      "slope_mean_per_decade": 0.4926724553620973,
+      "slope_median_per_decade": 0.4997415756952297,
+      "width_median_per_decade": 0.4333889112586924,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.5,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 492,
+        "rate": 0.492,
+        "ci95": [
+          0.4605767417009987,
+          0.5234704817428755
+        ]
+      },
+      "miss_low": 252,
+      "miss_high": 256,
+      "slope_mean_per_decade": 0.5064064590573001,
+      "slope_median_per_decade": 0.504679964910274,
+      "width_median_per_decade": 0.23892410089830535,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.5,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 487,
+        "rate": 0.487,
+        "ci95": [
+          0.455597992254128,
+          0.5184787461735794
+        ]
+      },
+      "miss_low": 254,
+      "miss_high": 259,
+      "slope_mean_per_decade": 0.5034813313447049,
+      "slope_median_per_decade": 0.5040661038800204,
+      "width_median_per_decade": 0.1310323014953378,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.1,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 365,
+        "rate": 0.365,
+        "ci95": [
+          0.33509597380777095,
+          0.3957015511460871
+        ]
+      },
+      "miss_low": 327,
+      "miss_high": 308,
+      "slope_mean_per_decade": 0.08797343901733545,
+      "slope_median_per_decade": 0.09023986884649607,
+      "width_median_per_decade": 0.42466383980432765,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.1,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 364,
+        "rate": 0.364,
+        "ci95": [
+          0.3341163374441287,
+          0.39468710511955296
+        ]
+      },
+      "miss_low": 329,
+      "miss_high": 307,
+      "slope_mean_per_decade": 0.09217576947690097,
+      "slope_median_per_decade": 0.08883770834419086,
+      "width_median_per_decade": 0.23508268910990393,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.1,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 360,
+        "rate": 0.36,
+        "ci95": [
+          0.3301991830442188,
+          0.3906279323794035
+        ]
+      },
+      "miss_low": 317,
+      "miss_high": 323,
+      "slope_mean_per_decade": 0.09807398944085696,
+      "slope_median_per_decade": 0.10070813739765322,
+      "width_median_per_decade": 0.1297050028560628,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.3,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 333,
+        "rate": 0.333,
+        "ci95": [
+          0.30381780242015766,
+          0.3631692178520081
+        ]
+      },
+      "miss_low": 324,
+      "miss_high": 343,
+      "slope_mean_per_decade": 0.3014950621130671,
+      "slope_median_per_decade": 0.3015189145564098,
+      "width_median_per_decade": 0.41590978839758896,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.3,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 360,
+        "rate": 0.36,
+        "ci95": [
+          0.3301991830442188,
+          0.3906279323794035
+        ]
+      },
+      "miss_low": 328,
+      "miss_high": 312,
+      "slope_mean_per_decade": 0.299739089628024,
+      "slope_median_per_decade": 0.296691445373638,
+      "width_median_per_decade": 0.23214389572469837,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.3,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 375,
+        "rate": 0.375,
+        "ci95": [
+          0.34489992212129816,
+          0.40583843938105607
+        ]
+      },
+      "miss_low": 309,
+      "miss_high": 316,
+      "slope_mean_per_decade": 0.29914456565822667,
+      "slope_median_per_decade": 0.29908023895480296,
+      "width_median_per_decade": 0.12944378908417445,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.5,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 366,
+        "rate": 0.366,
+        "ci95": [
+          0.33607574878480273,
+          0.39671585879636684
+        ]
+      },
+      "miss_low": 319,
+      "miss_high": 315,
+      "slope_mean_per_decade": 0.5018093803886635,
+      "slope_median_per_decade": 0.4932536628597344,
+      "width_median_per_decade": 0.4184903213114407,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.5,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 379,
+        "rate": 0.379,
+        "ci95": [
+          0.3488253306950418,
+          0.4098893715369726
+        ]
+      },
+      "miss_low": 327,
+      "miss_high": 294,
+      "slope_mean_per_decade": 0.4849082981675079,
+      "slope_median_per_decade": 0.48354468231098624,
+      "width_median_per_decade": 0.2344142485212393,
+      "below_flag": true,
+      "below_nominal": true
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.5,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "coverage": {
+        "n": 1000,
+        "k": 351,
+        "rate": 0.351,
+        "ci95": [
+          0.3213937931189768,
+          0.3814866010926249
+        ]
+      },
+      "miss_low": 324,
+      "miss_high": 325,
+      "slope_mean_per_decade": 0.502754592411707,
+      "slope_median_per_decade": 0.503251038613073,
+      "width_median_per_decade": 0.12928245897365925,
+      "below_flag": true,
+      "below_nominal": true
+    }
+  ],
+  "flagged_cells": [
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.1,
+      "n_years": 20,
+      "coverage": 0.861
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.1,
+      "n_years": 30,
+      "coverage": 0.846
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.1,
+      "n_years": 45,
+      "coverage": 0.856
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.3,
+      "n_years": 20,
+      "coverage": 0.846
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.3,
+      "n_years": 30,
+      "coverage": 0.863
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.3,
+      "n_years": 45,
+      "coverage": 0.857
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.5,
+      "n_years": 20,
+      "coverage": 0.843
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.5,
+      "n_years": 30,
+      "coverage": 0.829
+    },
+    {
+      "phi": 0.3,
+      "slope_per_decade": 0.5,
+      "n_years": 45,
+      "coverage": 0.85
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.1,
+      "n_years": 20,
+      "coverage": 0.648
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.1,
+      "n_years": 30,
+      "coverage": 0.658
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.1,
+      "n_years": 45,
+      "coverage": 0.677
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.3,
+      "n_years": 20,
+      "coverage": 0.666
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.3,
+      "n_years": 30,
+      "coverage": 0.661
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.3,
+      "n_years": 45,
+      "coverage": 0.669
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.5,
+      "n_years": 20,
+      "coverage": 0.678
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.5,
+      "n_years": 30,
+      "coverage": 0.679
+    },
+    {
+      "phi": 0.6,
+      "slope_per_decade": 0.5,
+      "n_years": 45,
+      "coverage": 0.677
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.1,
+      "n_years": 20,
+      "coverage": 0.464
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.1,
+      "n_years": 30,
+      "coverage": 0.457
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.1,
+      "n_years": 45,
+      "coverage": 0.498
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.3,
+      "n_years": 20,
+      "coverage": 0.51
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.3,
+      "n_years": 30,
+      "coverage": 0.526
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.3,
+      "n_years": 45,
+      "coverage": 0.477
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.5,
+      "n_years": 20,
+      "coverage": 0.51
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.5,
+      "n_years": 30,
+      "coverage": 0.492
+    },
+    {
+      "phi": 0.8,
+      "slope_per_decade": 0.5,
+      "n_years": 45,
+      "coverage": 0.487
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.1,
+      "n_years": 20,
+      "coverage": 0.365
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.1,
+      "n_years": 30,
+      "coverage": 0.364
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.1,
+      "n_years": 45,
+      "coverage": 0.36
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.3,
+      "n_years": 20,
+      "coverage": 0.333
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.3,
+      "n_years": 30,
+      "coverage": 0.36
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.3,
+      "n_years": 45,
+      "coverage": 0.375
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.5,
+      "n_years": 20,
+      "coverage": 0.366
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.5,
+      "n_years": 30,
+      "coverage": 0.379
+    },
+    {
+      "phi": 0.9,
+      "slope_per_decade": 0.5,
+      "n_years": 45,
+      "coverage": 0.351
+    }
+  ],
+  "onset": [
+    {
+      "slope_per_decade": 0.1,
+      "n_years": 20,
+      "phi": 0.3
+    },
+    {
+      "slope_per_decade": 0.1,
+      "n_years": 30,
+      "phi": 0.3
+    },
+    {
+      "slope_per_decade": 0.1,
+      "n_years": 45,
+      "phi": 0.3
+    },
+    {
+      "slope_per_decade": 0.3,
+      "n_years": 20,
+      "phi": 0.3
+    },
+    {
+      "slope_per_decade": 0.3,
+      "n_years": 30,
+      "phi": 0.3
+    },
+    {
+      "slope_per_decade": 0.3,
+      "n_years": 45,
+      "phi": 0.3
+    },
+    {
+      "slope_per_decade": 0.5,
+      "n_years": 20,
+      "phi": 0.3
+    },
+    {
+      "slope_per_decade": 0.5,
+      "n_years": 30,
+      "phi": 0.3
+    },
+    {
+      "slope_per_decade": 0.5,
+      "n_years": 45,
+      "phi": 0.3
+    }
+  ],
+  "onset_phi": 0.3,
+  "versions": {
+    "numpy": "2.5.4",
+    "pandas": "3.1.1",
+    "scipy": "1.18.1",
+    "pymannkendall": "1.4.3",
+    "python": "3.12.3"
+  }
+}
