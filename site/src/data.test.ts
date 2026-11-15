@@ -72,7 +72,7 @@ describe("parseCase", () => {
     expect(c.series.anomaly).toHaveLength(540);
   });
 
-  it.each([0, 1, 3, "2", undefined])("rejects schema_version %j loudly", (v) => {
+  it.each([0, 1, 2, 4, "3", undefined])("rejects schema_version %j loudly", (v) => {
     expect(() => parseCase({ ...gate1(), schema_version: v })).toThrow(SchemaMismatchError);
   });
 
@@ -101,8 +101,19 @@ describe("parseCase", () => {
       mk_seasonal: null,
       consistency: null,
       autocorrelation: null,
+      windows: null,
     };
     expect(parseCase(raw).quality.reason).toBe("too short");
+  });
+
+  it("rejects a passed record without the windows block", () => {
+    expect(() => parseCase({ ...gate1(), windows: null })).toThrow(/windows/);
+  });
+
+  it("rejects a ragged window grid", () => {
+    const raw = gate1();
+    raw.windows.slope[0].pop();
+    expect(() => parseCase(raw)).toThrow(/windows.slope/);
   });
 
   it("rejects a case without a verdict", () => {

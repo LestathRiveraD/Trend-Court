@@ -31,13 +31,14 @@ p < 0.01 for Moderate, and a band capped at Inconclusive (or ``r1`` above
 the benchmark grid) allows no significance claim at all. Every number comes
 from ``thresholds.json`` through :mod:`trendcourt.thresholds`.
 
-Window agreement and witness B arrive in Phase 3. Until then a case has no
-``windows`` / ``witness`` block, their checks are ``"pending"``, and the
-verdict never claims they passed. Their provisional inputs, read when
-present:
+Window agreement comes from the case's ``windows`` block
+(:func:`trendcourt.examiner.windows`, issue #39); witness B arrives in
+Phase 3. A missing input leaves its check ``"pending"``, and the verdict
+never claims a pending check passed. The inputs, read when present:
 
-* ``case["windows"] = {"same_sign_share": float}``: share of windows whose
-  Theil–Sen slope has the same sign as the full record's;
+* ``case["windows"] = {"same_sign_share": float | None, ...}``: share of
+  windows whose Theil–Sen slope has the same sign as the full record's
+  (``None``, or no block, when no window could be tested: pending);
 * ``case["witness"] = {"sign": -1 | 0 | 1, "significant": bool}``: the sign
   of witness B's trend and whether its own test is significant.
 """
@@ -92,7 +93,7 @@ def witnesses_disagree(sign_a: int, significant_a: bool, sign_b: int, significan
 def _window_check(case: dict, th: dict) -> dict:
     w = case.get("windows")
     threshold = th["window_agreement_strong"]
-    if w is None:
+    if w is None or w.get("same_sign_share") is None:
         return _check("window_agreement", PENDING, None, threshold)
     share = float(w["same_sign_share"])
     if not (math.isfinite(share) and 0 <= share <= 1):

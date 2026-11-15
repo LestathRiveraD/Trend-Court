@@ -3,7 +3,7 @@
 Puts climate-trend claims on trial against NASA data (POWER, MERRA-2, GLDAS, FLDAS, GPCP).
 
 - `trendcourt/clerk.py`: data loading, cleaning, aggregation, deseasonalizing
-- `trendcourt/examiner.py`: trend statistics (Theil–Sen, OLS, Mann–Kendall variants)
+- `trendcourt/examiner.py`: trend statistics (Theil–Sen, OLS, Mann–Kendall variants) and window sensitivity (`windows`: every window of at least 15 whole years, with the full-record wrappers; about 2 s per case on 12 processes)
 - `trendcourt/knmi.py`: Gate 1 (c) KNMI Climate Explorer cross-check (upload files, slope comparison)
 - `trendcourt/crosscheck.py`: Gate 1 cross-checks against reference series (Giovanni MERRA-2)
 - `scripts/gate1_giovanni.py`: reruns Gate 1 (b) and writes `docs/gate1/`
@@ -16,7 +16,7 @@ Puts climate-trend claims on trial against NASA data (POWER, MERRA-2, GLDAS, FLD
 - `scripts/benchmark.py --figures`: no simulation; redraws `docs/benchmark/*.png` and the tables in `docs/benchmark.md` from the committed JSON (and, for the no-trend columns of Table 6, the committed records in `data/`); fails if the bands or `noise_caveats` in `thresholds.json` no longer match `fpr.json` / `noise.json`, or if `applied.json` / `noise.json` were run with other thresholds
 - `trendcourt/thresholds.json`: calibrated verdict thresholds (alphas, autocorrelation caps, per-variable no-trend margins, relative for precipitation; noise-model caveats per case), reasoning in `docs/benchmark.md`; read only through `trendcourt/thresholds.py`
 - `trendcourt/case.py`: `trendcourt.examine(region, variable)`, the case JSON (`python -m trendcourt mexicali temperature`)
-- `trendcourt/verdict.py`: `decide(case, thresholds)`, the verdict label, its checks (pass / fail / pending), whether a pending check capped it at Moderate, and a one-line reason; `examine` stores it in the case JSON's `verdict` block (v0: window agreement and witness B are pending until Phase 3)
+- `trendcourt/verdict.py`: `decide(case, thresholds)`, the verdict label, its checks (pass / fail / pending), whether a pending check capped it at Moderate, and a one-line reason; `examine` stores it in the case JSON's `verdict` block (window agreement reads the `windows` block; witness B is pending until Phase 3)
 - `trendcourt/cache.py`, `scripts/build_cache.py`: writes every preset case and `index.json` to `site/public/cases/`, see [Rebuilding the case cache](#rebuilding-the-case-cache)
 - `site/`: the static front end (Vite, React, Plotly), see [Site](#site)
 - `data/`: raw downloads and region definitions

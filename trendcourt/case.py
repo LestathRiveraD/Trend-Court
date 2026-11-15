@@ -21,8 +21,9 @@ import pandas as pd
 
 from trendcourt import benchmark, clerk, examiner, thresholds, verdict
 
-SCHEMA_VERSION = 2
-"""Version 2: ``autocorrelation`` and ``verdict`` blocks (verdict module v0, issue #20)."""
+SCHEMA_VERSION = 3
+"""Version 2: ``autocorrelation`` and ``verdict`` blocks (verdict module v0, issue #20).
+Version 3: ``windows`` block (window sensitivity, issue #39)."""
 
 
 def _month(ts: pd.Timestamp | None) -> str | None:
@@ -90,8 +91,11 @@ def examine(region: str, variable: str) -> dict:
     Then ``autocorrelation.r1_detrended``, the lag-1 autocorrelation of the
     anomalies after removing the Theil–Sen line
     (``benchmark.detrended_r1``, the ``r1`` the thresholds' band rule
-    reads), and ``verdict``, :func:`trendcourt.verdict.decide` on the case
-    with ``thresholds.load()``. Neither changes any other number.
+    reads); ``windows``, :func:`trendcourt.examiner.windows` (every window
+    of at least 15 whole years, significance at ``alpha_moderate``; ``None``
+    with the other statistics when the quality gate fails); and
+    ``verdict``, :func:`trendcourt.verdict.decide` on the case with
+    ``thresholds.load()``. None of them changes any other number.
     """
     prepared = clerk.prepare(region, variable)
     quality = prepared.quality
@@ -116,6 +120,7 @@ def examine(region: str, variable: str) -> dict:
         "mk_seasonal": None,
         "consistency": None,
         "autocorrelation": None,
+        "windows": None,
     }
     if not quality.passed:
         case["verdict"] = verdict.decide(case, thresholds.load())
@@ -133,7 +138,9 @@ def examine(region: str, variable: str) -> dict:
         consistency=examiner.consistency(mk, smk),
         autocorrelation={"r1_detrended": benchmark.detrended_r1(t, anomalies, ts)},
     )
-    case["verdict"] = verdict.decide(case, thresholds.load())
+    th = thresholds.load()
+    case["windows"] = examiner.windows(t, anomalies, alpha=th["alpha_moderate"])
+    case["verdict"] = verdict.decide(case, th)
     return case
 
 

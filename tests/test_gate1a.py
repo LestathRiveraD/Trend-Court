@@ -163,7 +163,7 @@ def test_failed_quality_gate_skips_statistics(prepared, monkeypatch):
                         lambda region, var: dataclasses.replace(prepared, quality=quality))
     out = trendcourt.examine(REGION, VARIABLE)
     assert out["quality"]["verdict"] == clerk.INSUFFICIENT
-    for key in ("theil_sen", "ols", "mk_hamed_rao", "mk_seasonal", "consistency"):
+    for key in ("theil_sen", "ols", "mk_hamed_rao", "mk_seasonal", "consistency", "windows"):
         assert out[key] is None
     json.dumps(out, allow_nan=False)
 
@@ -172,3 +172,13 @@ def test_cli_writes_canonical_json(case, capsys):
     assert case_module.main([REGION, VARIABLE]) == 0
     assert capsys.readouterr().out == case_module.to_json(case)
     assert case_module.main([]) == 2
+
+
+def test_windows_full_record_cell_equals_case_tests(case):
+    """The 1981–2025 window is the full record: same wrappers, same numbers (``==``)."""
+    w = case["windows"]
+    assert w["n_windows"] == 496
+    assert w["start_years"][0] == 1981 and w["end_years"][-1] == 2025
+    assert w["slope"][0][-1] == case["theil_sen"]["slope_per_decade"]
+    assert w["p"][0][-1] == case["mk_hamed_rao"]["p"]
+
