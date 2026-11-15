@@ -3,7 +3,7 @@
     "accessed": [
       "2026-11-14"
     ],
-    "commit": "stand-in (docs/gate1/mexicali_temperature.json); replaced by scripts/build_cache.py, #21"
+    "commit": "217a15953d257d8a16513abf9c4442842386a9db"
   },
   "cases": [
     {
@@ -14,6 +14,176 @@
       },
       "region": "mexicali",
       "variable": "temperature",
+      "verdict": null
+    },
+    {
+      "file": "mexicali_precipitation.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "mexicali",
+      "variable": "precipitation",
+      "verdict": null
+    },
+    {
+      "file": "mexicali_soil_moisture.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "mexicali",
+      "variable": "soil_moisture",
+      "verdict": null
+    },
+    {
+      "file": "mexico_city_temperature.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "mexico_city",
+      "variable": "temperature",
+      "verdict": null
+    },
+    {
+      "file": "mexico_city_precipitation.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "mexico_city",
+      "variable": "precipitation",
+      "verdict": null
+    },
+    {
+      "file": "mexico_city_soil_moisture.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "mexico_city",
+      "variable": "soil_moisture",
+      "verdict": null
+    },
+    {
+      "file": "yucatan_temperature.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "yucatan",
+      "variable": "temperature",
+      "verdict": null
+    },
+    {
+      "file": "yucatan_precipitation.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "yucatan",
+      "variable": "precipitation",
+      "verdict": null
+    },
+    {
+      "file": "yucatan_soil_moisture.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "yucatan",
+      "variable": "soil_moisture",
+      "verdict": null
+    },
+    {
+      "file": "sahel_temperature.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "sahel",
+      "variable": "temperature",
+      "verdict": null
+    },
+    {
+      "file": "sahel_precipitation.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "sahel",
+      "variable": "precipitation",
+      "verdict": null
+    },
+    {
+      "file": "sahel_soil_moisture.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "sahel",
+      "variable": "soil_moisture",
+      "verdict": null
+    },
+    {
+      "file": "amazon_temperature.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "amazon",
+      "variable": "temperature",
+      "verdict": null
+    },
+    {
+      "file": "amazon_precipitation.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "amazon",
+      "variable": "precipitation",
+      "verdict": null
+    },
+    {
+      "file": "amazon_soil_moisture.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "amazon",
+      "variable": "soil_moisture",
+      "verdict": null
+    },
+    {
+      "file": "iberia_temperature.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "iberia",
+      "variable": "temperature",
+      "verdict": null
+    },
+    {
+      "file": "iberia_precipitation.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "iberia",
+      "variable": "precipitation",
+      "verdict": null
+    },
+    {
+      "file": "iberia_soil_moisture.json",
+      "quality": {
+        "passed": true,
+        "verdict": "sufficient record"
+      },
+      "region": "iberia",
+      "variable": "soil_moisture",
       "verdict": null
     }
   ],
