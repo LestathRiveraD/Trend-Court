@@ -86,18 +86,19 @@ function Numbers({ c }: { c: CaseFile }) {
   );
 }
 
+/** Numbers worded like the Clerk's quality reason (`quality_gate` in `trendcourt/clerk.py`: `.1f` years, `.1%` share). */
 function QualityNumbers({ c }: { c: CaseFile }) {
   const q = c.quality;
   return (
     <dl className="numbers">
       <div>
         <dt>Years covered</dt>
-        <dd>{q.years_covered}</dd>
+        <dd>{q.years_covered.toFixed(1)}</dd>
       </div>
       <div>
         <dt>Months missing</dt>
         <dd>
-          {q.n_missing} of {q.n_months} ({Math.round(q.share_missing * 100)}%)
+          {q.n_missing} of {q.n_months} ({(q.share_missing * 100).toFixed(1)}%)
         </dd>
       </div>
     </dl>

@@ -40,11 +40,30 @@ export const NOISE_CAVEAT_TEXT =
 /** Same floor as `P_FLOOR` in `trendcourt/verdict.py`: below it a p-value prints as a bound. */
 export const P_FLOOR = 1e-6;
 
-/** A p-value for the checks list, worded like the verdict's reason: "p = 0.016", "p < 1e-6". */
+/**
+ * Python's `f"{x:.3g}"`: three significant digits, exponent form when the exponent is
+ * below -4 or at least 3 (`1.77e-05`), trailing zeros dropped.
+ */
+export function g3(x: number): string {
+  if (!Number.isFinite(x) || x === 0) return String(x);
+  const [mant, expStr] = x.toExponential(2).split("e");
+  const exp = Number(expStr);
+  if (exp < -4 || exp >= 3) {
+    const m = mant.replace(/\.?0+$/, "");
+    const sign = exp < 0 ? "-" : "+";
+    return `${m}e${sign}${String(Math.abs(exp)).padStart(2, "0")}`;
+  }
+  return String(Number(x.toPrecision(3)));
+}
+
+/**
+ * A p-value for the checks list, worded like the verdict's reason (`_p_text` in
+ * `trendcourt/verdict.py`): "p = 0.016", "p = 1.77e-05", "p < 1e-6".
+ */
 export function pText(p: number): string {
   if (!Number.isFinite(p)) return "p unavailable";
   if (p < P_FLOOR) return "p < 1e-6";
-  return `p = ${Number(p.toPrecision(3))}`;
+  return `p = ${g3(p)}`;
 }
 
 export type CheckStatus = VerdictCheck["status"];

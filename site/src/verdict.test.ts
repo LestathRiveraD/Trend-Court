@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { parseCase, type CaseFile, type Verdict, type VerdictLabel } from "./data";
 import { examinerLine } from "./format";
 import VerdictCard from "./Verdict";
-import { LABELS, NOISE_CAVEAT_TEXT, announcement, cappedText, checkRows, pText, signature } from "./verdict";
+import { LABELS, NOISE_CAVEAT_TEXT, announcement, cappedText, checkRows, g3, pText, signature } from "./verdict";
 
 const path = (rel: string) => fileURLToPath(new URL(rel, import.meta.url));
 const casesDir = path("../public/cases/");
@@ -56,6 +56,39 @@ describe("pText", () => {
     expect(pText(0.0163)).toBe("p = 0.0163");
     expect(pText(0.41234)).toBe("p = 0.412");
     expect(pText(Number.NaN)).toBe("p unavailable");
+  });
+
+  it("uses exponent form below 1e-4, like Python's .3g", () => {
+    expect(pText(1.77e-5)).toBe("p = 1.77e-05");
+    expect(pText(5.537216105899745e-5)).toBe("p = 5.54e-05");
+    expect(pText(0.000422748550690244)).toBe("p = 0.000423");
+  });
+
+  it("matches the p quoted in every cached case's verdict.reason", () => {
+    for (const f of caseFiles) {
+      const v = load(f).verdict;
+      const k = v.checks.find((x) => x.name === "hamed_rao_p");
+      if (!k || typeof k.value !== "number" || !/\bp [=<] /.test(v.reason)) continue;
+      expect(v.reason, f).toContain(pText(k.value));
+    }
+  });
+});
+
+describe("g3", () => {
+  // Expected strings are Python's f"{x:.3g}".
+  it.each<[number, string]>([
+    [1.77e-5, "1.77e-05"],
+    [2e-6, "2e-06"],
+    [1.5e-5, "1.5e-05"],
+    [9.999e-5, "0.0001"],
+    [0.000423, "0.000423"],
+    [0.04999, "0.05"],
+    [0.016, "0.016"],
+    [0.5, "0.5"],
+    [123.4, "123"],
+    [1234, "1.23e+03"],
+  ])("%s -> %s", (x, want) => {
+    expect(g3(x)).toBe(want);
   });
 });
 
@@ -173,12 +206,30 @@ describe("insufficient record", () => {
     const t = text(render(c));
     expect(t).toContain("Insufficient record");
     expect(t).toContain("only 12 years of data, 30 are needed");
-    expect(t).toContain("Years covered12");
+    expect(t).toContain("Years covered12.0");
     expect(t).not.toContain("Slope");
     expect(t).not.toContain("Corrected p");
     expect(t).not.toContain("The checks");
     expect(t).toContain("Ruled on the Clerk's quality check");
     expect(t).toContain("Trend, not attribution");
+  });
+
+  it("words non-integer years and shares like the Clerk's reason (.1f, .1%)", () => {
+    const odd: CaseFile = {
+      ...c,
+      quality: {
+        ...c.quality,
+        reason: "record covers 12.4 years, under 20; 10.4% of months missing, over 10%",
+        n_months: 149,
+        years_covered: 149 / 12,
+        n_missing: 15,
+        share_missing: 0.104,
+      },
+    };
+    const t = text(render(odd));
+    expect(t).toContain("Years covered12.4");
+    expect(t).not.toContain("12.41");
+    expect(t).toContain("15 of 149 (10.4%)");
   });
 });
 
