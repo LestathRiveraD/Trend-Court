@@ -5,8 +5,11 @@ Puts climate-trend claims on trial against NASA data (POWER, MERRA-2, GLDAS, FLD
 - `trendcourt/clerk.py`: data loading, cleaning, aggregation, deseasonalizing
 - `trendcourt/examiner.py`: trend statistics (Theil–Sen, OLS, Mann–Kendall variants)
 - `trendcourt/knmi.py`: Gate 1 (c) KNMI Climate Explorer cross-check (upload files, slope comparison)
+- `trendcourt/crosscheck.py`: Gate 1 cross-checks against reference series (Giovanni MERRA-2)
+- `scripts/gate1_giovanni.py`: reruns Gate 1 (b) and writes `docs/gate1/`
+- `trendcourt/case.py`: `trendcourt.examine(region, variable)`, the case JSON (`python -m trendcourt mexicali temperature`)
 - `data/`: raw downloads and region definitions
-- `docs/`: method notes
+- `docs/`: method notes; `docs/gate1/` holds the Gate 1 (a) reference case
 
 ## Setup
 

@@ -16,6 +16,7 @@ or, in one call, ``prepare("mexicali", "temperature")``.
 
 from __future__ import annotations
 
+import csv
 import json
 from dataclasses import dataclass
 from functools import lru_cache
@@ -106,6 +107,107 @@ def load_power_point(
     series = pd.Series(values, index=index, name=code).sort_index()
     full = pd.date_range(series.index[0], series.index[-1], freq="MS")
     series = series.reindex(full)
+    series.index.name = "time"
+    return series
+
+
+GIOVANNI_DIR = DATA_DIR / "raw" / "giovanni"
+GIOVANNI_FILL_VALUE = 1e15
+KELVIN_OFFSET = 273.15
+
+
+@dataclass(frozen=True)
+class GiovanniHeader:
+    """Metadata lines at the top of a Giovanni time-series CSV.
+
+    Boxes are ``(west, south, east, north)`` in degrees, as Giovanni
+    writes them. ``data_bbox`` gives the outermost source-grid cell
+    *centers* inside the user box, not the edges of the averaged area:
+    the cells extend half a grid step beyond it on each side (for
+    MERRA-2, see :func:`trendcourt.crosscheck.data_area`).
+    """
+
+    title: str
+    user_bbox: tuple[float, float, float, float]
+    data_bbox: tuple[float, float, float, float]
+    fill_value: float
+    column: str
+    n_header_lines: int
+
+
+def _parse_bbox(text: str) -> tuple[float, float, float, float]:
+    parts = [float(p) for p in text.split(",")]
+    if len(parts) != 4:
+        raise ValueError(f"expected 4 bounding-box values, got {text!r}")
+    return tuple(parts)  # type: ignore[return-value]
+
+
+def read_giovanni_header(path: Path | str) -> GiovanniHeader:
+    """Parse the metadata lines of a Giovanni time-series CSV.
+
+    The header is a variable number of ``key:,value`` lines, then a blank
+    line, then the column row starting with ``time``. Its length is found
+    by scanning, not assumed.
+    """
+    meta: dict[str, str] = {}
+    with open(path, encoding="utf-8", newline="") as fh:
+        for i, row in enumerate(csv.reader(fh)):
+            if row and row[0].strip() == "time":
+                if len(row) != 2:
+                    raise ValueError(f"{path}: expected 2 columns in {row!r}")
+                n_header = i
+                column = row[1].strip()
+                break
+            if row and row[0].strip():
+                meta[row[0].strip().rstrip(":")] = ",".join(row[1:]).strip()
+        else:
+            raise ValueError(f"{path}: no 'time' column row found")
+
+    fill_key = next((k for k in meta if k.startswith("Fill Value")), None)
+    fill = float(meta[fill_key]) if fill_key else GIOVANNI_FILL_VALUE
+    try:
+        user_bbox = _parse_bbox(meta["User Bounding Box"])
+        data_bbox = _parse_bbox(meta["Data Bounding Box"])
+    except KeyError as exc:
+        raise ValueError(f"{path}: header has no {exc.args[0]!r} line") from None
+    return GiovanniHeader(
+        title=meta.get("Title", ""),
+        user_bbox=user_bbox,
+        data_bbox=data_bbox,
+        fill_value=fill,
+        column=column,
+        n_header_lines=n_header,
+    )
+
+
+def load_giovanni_csv(path: Path | str) -> pd.Series:
+    """A Giovanni area-averaged temperature CSV as a monthly series in °C.
+
+    Skips the metadata header (see :func:`read_giovanni_header`), sets the
+    header's fill value (1e15) to NaN, converts Kelvin to °C, and returns
+    a complete month-start ``DatetimeIndex`` named ``time``, so months
+    absent from the file show up as NaN. Values are compared to the fill
+    value with a relative tolerance, since the file writes it as an
+    integer and a float round-trip may not be exact.
+
+    Only for Kelvin temperature variables such as MERRA-2 ``T2M``; the
+    conversion is not checked against the file's units, which Giovanni
+    does not write.
+    """
+    header = read_giovanni_header(path)
+    df = pd.read_csv(path, skiprows=header.n_header_lines, skipinitialspace=True)
+    df.columns = [c.strip() for c in df.columns]
+    values = df[header.column].to_numpy(dtype=float, copy=True)
+    values[np.isclose(values, header.fill_value, rtol=1e-6, atol=0.0)] = np.nan
+
+    index = pd.to_datetime(df["time"])
+    if not (index == index.dt.to_period("M").dt.start_time).all():
+        raise ValueError(f"{path}: timestamps are not month starts")
+    if index.duplicated().any():
+        raise ValueError(f"{path}: duplicate months")
+
+    series = pd.Series(values - KELVIN_OFFSET, index=pd.DatetimeIndex(index), name="T2M").sort_index()
+    series = series.reindex(pd.date_range(series.index[0], series.index[-1], freq="MS"))
     series.index.name = "time"
     return series
 
