@@ -7,7 +7,7 @@ thresholds from them. The thresholds are in
 [`trendcourt/thresholds.json`](../trendcourt/thresholds.json), read by
 [`trendcourt/thresholds.py`](../trendcourt/thresholds.py). Gate 2 freezes them.
 
-**Status:** statistics review round 1 addressed (issue #19); waiting for the reviewer's sign-off.
+**Status:** signed off by the statistics reviewer (round 3, PASS, PR #31, commit `ed5d7e3`).
 
 ## In plain words
 
