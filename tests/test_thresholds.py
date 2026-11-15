@@ -146,10 +146,36 @@ def test_relative_precipitation_margin(th):
     with pytest.raises(ValueError, match="no no_trend_margin"):
         thresholds.no_trend_margin("wind", th)
     # the same interval is "no trend" in a wet region and not in an arid one
-    assert thresholds.no_trend_allowed("precipitation", 0.0, -0.05, 0.05, 0.1, 0.5, th, regional_mean=6.0)
-    assert not thresholds.no_trend_allowed("precipitation", 0.0, -0.05, 0.05, 0.1, 0.5, th, regional_mean=0.4)
+    assert thresholds.no_trend_allowed("precipitation", 0.0, -0.05, 0.05, 0.1, 0.5, th, region="synthetic", regional_mean=6.0)
+    assert not thresholds.no_trend_allowed("precipitation", 0.0, -0.05, 0.05, 0.1, 0.5, th, region="synthetic", regional_mean=0.4)
     with pytest.raises(ValueError, match="regional_mean"):
-        thresholds.no_trend_allowed("precipitation", 0.0, -0.05, 0.05, 0.1, 0.5, th)
+        thresholds.no_trend_allowed("precipitation", 0.0, -0.05, 0.05, 0.1, 0.5, th, region="synthetic")
+
+
+def test_no_trend_refused_for_interval_optimistic_cases(th):
+    """Yucatán precipitation is flagged interval_optimistic, not significant
+    (p 0.498) and geometrically reachable (widened half-width 0.0846 against a
+    margin of 0.0872). With its own off-centre slope it is refused anyway; with
+    a centred slope only the guard refuses it."""
+    from trendcourt import examiner
+
+    assert "interval_optimistic" in thresholds.noise_caveat("yucatan", "precipitation", th)
+    prepared = clerk.prepare("yucatan", "precipitation")
+    ts = examiner.theil_sen(prepared.time, prepared.anomalies)
+    hr = examiner.mk_hamed_rao(prepared.anomalies)
+    r1 = benchmark.detrended_r1(prepared.time, prepared.anomalies, ts)
+    mean = thresholds.regional_mean(prepared.climatology)
+    s, lo, hi = ts.slope_per_decade, ts.low_slope_per_decade, ts.high_slope_per_decade
+    half = max(s - lo, hi - s)  # centre the interval on 0, keep its larger half-width
+    args = ("precipitation", 0.0, -half, half, r1, hr.p, th)
+    assert hr.p >= th["alpha_moderate"]
+    assert thresholds.widening_factor(r1) * half <= thresholds.no_trend_margin(
+        "precipitation", th, regional_mean=mean)
+    assert not thresholds.no_trend_allowed(*args, region="yucatan", regional_mean=mean)
+    # the same numbers for an unflagged case pass: the guard alone refuses it
+    assert thresholds.no_trend_allowed(*args, region="synthetic", regional_mean=mean)
+    with pytest.raises(TypeError):
+        thresholds.no_trend_allowed(*args, regional_mean=mean)  # region is required
 
 
 def test_regional_mean_is_the_climatology_mean():
@@ -164,16 +190,16 @@ def test_regional_mean_is_the_climatology_mean():
 
 def test_no_trend_needs_nonsignificance_and_widened_interval_inside_margin(th):
     # temperature margin 0.1 degC/decade
-    assert thresholds.no_trend_allowed("temperature", 0.0, -0.04, 0.04, 0.3, 0.5, th)
+    assert thresholds.no_trend_allowed("temperature", 0.0, -0.04, 0.04, 0.3, 0.5, th, region="synthetic")
     # raw interval fits, widened one (factor 3 at r1 = 0.8) does not
-    assert not thresholds.no_trend_allowed("temperature", 0.0, -0.04, 0.04, 0.8, 0.5, th)
+    assert not thresholds.no_trend_allowed("temperature", 0.0, -0.04, 0.04, 0.8, 0.5, th, region="synthetic")
     # significant at alpha_moderate: never "no trend"
-    assert not thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, 0.0, 0.049, th)
+    assert not thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, 0.0, 0.049, th, region="synthetic")
     # p between 0.01 and 0.05 is still significant for this rule, whatever the band
-    assert not thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, 0.7, 0.03, th)
-    assert thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, 0.0, 0.05, th)
+    assert not thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, 0.7, 0.03, th, region="synthetic")
+    assert thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, 0.0, 0.05, th, region="synthetic")
     with pytest.raises(ValueError, match="no no_trend_margin"):
-        thresholds.no_trend_allowed("wind", 0.0, -0.01, 0.01, 0.0, 0.5, th)
+        thresholds.no_trend_allowed("wind", 0.0, -0.01, 0.01, 0.0, 0.5, th, region="synthetic")
 
 
 def test_no_trend_never_outside_the_benchmark(th):
@@ -183,9 +209,9 @@ def test_no_trend_never_outside_the_benchmark(th):
     assert top == 0.9
     for r1 in (0.9000001, 0.95, 0.999, 1.0, 1.5):
         assert thresholds.band_for(r1, th) is None
-        assert not thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, r1, 0.5, th)
+        assert not thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, r1, 0.5, th, region="synthetic")
     with pytest.raises(ValueError):
-        thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, math.nan, 0.5, th)
+        thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, math.nan, 0.5, th, region="synthetic")
 
 
 def test_no_trend_still_allowed_in_the_inconclusive_capped_band(th):
@@ -193,10 +219,10 @@ def test_no_trend_still_allowed_in_the_inconclusive_capped_band(th):
     rule rests on the widened interval, which is checked up to phi = 0.9."""
     assert thresholds.band_for(0.85, th)["max_verdict"] == "inconclusive"
     f = thresholds.widening_factor(0.85)  # about 3.51
-    assert thresholds.no_trend_allowed("temperature", 0.0, -0.02, 0.02, 0.85, 0.5, th)
+    assert thresholds.no_trend_allowed("temperature", 0.0, -0.02, 0.02, 0.85, 0.5, th, region="synthetic")
     assert 0.02 * f < 0.1
-    assert thresholds.no_trend_allowed("temperature", 0.0, -0.02, 0.02, 0.9, 0.5, th)
-    assert not thresholds.no_trend_allowed("temperature", 0.0, -0.03, 0.03, 0.85, 0.5, th)
+    assert thresholds.no_trend_allowed("temperature", 0.0, -0.02, 0.02, 0.9, 0.5, th, region="synthetic")
+    assert not thresholds.no_trend_allowed("temperature", 0.0, -0.03, 0.03, 0.85, 0.5, th, region="synthetic")
 
 
 # --- schema checks ---------------------------------------------------------------
@@ -342,10 +368,10 @@ def test_real_case_no_trend_columns(th, fpr):
         assert v["reachable"] == (v["half_width"] <= v["margin"])  # all 18 are inside the grid
     mc = nt[("mexico_city", "precipitation")]
     assert mc["hr_p"] >= th["alpha_moderate"] and mc["margin"] == pytest.approx(0.0702, abs=1e-4)
-    # no case allowed "no trend" is flagged as having an optimistic interval
+    # the guard: no case flagged interval_optimistic is allowed "no trend"
     for k, v in nt.items():
-        if v["allowed"]:
-            assert "interval_optimistic" not in thresholds.noise_caveat(*k, th)
+        if "interval_optimistic" in thresholds.noise_caveat(*k, th):
+            assert not v["allowed"], k
 
 
 def test_update_doc_fails_on_stale_bands(th, tmp_path):

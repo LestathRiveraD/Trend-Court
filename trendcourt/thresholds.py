@@ -339,11 +339,13 @@ def no_trend_margin(variable: str, thresholds: dict | None = None, *,
 
 
 def no_trend_allowed(variable: str, slope: float, low: float, high: float, r1: float,
-                     hr_p: float, thresholds: dict | None = None, *,
+                     hr_p: float, thresholds: dict | None = None, *, region: str,
                      regional_mean: float | None = None) -> bool:
     """Whether the evidence supports "No detectable trend".
 
-    True only when ``r1`` is inside the benchmarked bands
+    True only when the case (``region``, ``variable``) is not flagged
+    ``interval_optimistic`` in ``noise_caveats`` (:func:`noise_caveat`),
+    ``r1`` is inside the benchmarked bands
     (:func:`band_for` is not ``None``), the Hamed–Rao test is not
     significant at ``alpha_moderate``, and the widened interval lies
     inside ``[-margin, +margin]`` with ``margin`` from
@@ -365,9 +367,18 @@ def no_trend_allowed(variable: str, slope: float, low: float, high: float, r1: f
       ``phi = 0.9`` (0.93 at 0.9), but only about 0.91–0.93 on 20-year
       records at ``phi`` 0.85–0.9: Phase 3 windows of 20 years or less in
       that band must not reuse this rule unchanged.
+    * A case flagged ``interval_optimistic``: always False. Under its own
+      fitted noise the widened interval covers less than
+      ``noise_model_check.min_widened_coverage``, so the interval is too
+      narrow to support a claim of absence (``docs/benchmark.md``,
+      Table 8). ``region`` is a required keyword so the check cannot be
+      skipped by accident; a region not in ``noise_caveats`` (e.g. a
+      synthetic case) is not flagged.
     """
     th = load() if thresholds is None else thresholds
     m = no_trend_margin(variable, th, regional_mean=regional_mean)
+    if "interval_optimistic" in noise_caveat(region, variable, th):
+        return False
     if band_for(r1, th) is None:
         return False
     lo, hi = widened_interval(slope, low, high, r1)

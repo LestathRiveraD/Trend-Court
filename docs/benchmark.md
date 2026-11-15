@@ -238,7 +238,9 @@ These four cases are flagged in `thresholds.json` (`noise_caveats`, rule
 interval covers less than 0.93 under the case's own noise, `fpr_optimistic`
 when the false-claim (or false-Strong) rate is above the band's stated
 rate beyond Monte Carlo error. The verdict module reads them with
-`thresholds.noise_caveat(region, variable)`, and **the card of a flagged
+`thresholds.noise_caveat(region, variable)`; `no_trend_allowed` refuses
+"No detectable trend" for every `interval_optimistic` case (see the
+no-trend rule below); and **the card of a flagged
 case must print `noise_model_check.card_text`**: the record varies on
 multi-year scales more than the benchmark's noise model assumes, so the
 stated false-positive rate and interval are optimistic. The flags live in
@@ -379,11 +381,16 @@ Where the rule applies, by autocorrelation band:
   checked there (coverage with estimated `r1` falls to 0.875–0.920 at
   `phi = 0.95`), so `no_trend_allowed` returns False and the verdict is
   Inconclusive.
-* **Cases flagged `interval_optimistic`** (Table 8): under their own noise
-  the widened interval covers less than 0.93, so the verdict module should
-  not give "No detectable trend" for them. This changes no current
-  verdict: of the four, only Yucatán precipitation is not significant, and
-  its widened interval already crosses the margin.
+* **Cases flagged `interval_optimistic`: never** (Table 8). Under their
+  own noise the widened interval covers less than 0.93, too little to
+  support a claim of absence. `no_trend_allowed` enforces this: it takes
+  `region` as a required keyword and returns False for a flagged case.
+  The guard matters on the committed data. Yucatán precipitation is not
+  significant (p = 0.498) and geometrically reachable (widened half-width
+  0.0846 against a margin of 0.0872); today it is refused only because
+  its slope is off-centre, and a centred slope would pass without the
+  guard. With the widening its own noise model calls for (1.29 instead of
+  1.07) it would not be reachable at all. No current verdict changes.
 
 | variable | margin | over 45 years | reasoning |
 |---|---|---|---|
@@ -414,14 +421,20 @@ now):
   Mexicali and Iberia; soil moisture in Mexico City, Yucatán, the Amazon
   and Iberia. The relative precipitation margin made Mexicali (widened
   half-width 0.022 against 0.011) unreachable, and Yucatán and Amazon
-  precipitation reachable.
+  precipitation geometrically reachable; both are flagged
+  `interval_optimistic`, so `no_trend_allowed` refuses them at any slope.
 * It is **allowed for one**: Mexico City precipitation (p = 0.67; widened
   interval about [−0.058, +0.037] mm/day/decade, inside ±0.070, i.e. at
   most a 2.5% per decade change either way). Its noise is close to AR(1)
   (widened coverage 0.946 under its own noise model, Table 8), so the
-  claim is supported. The other five non-significant cases (precipitation
-  in Yucatán and Iberia, soil moisture in Mexico City, Yucatán and
-  Iberia) get Inconclusive.
+  claim is supported: any widening factor up to 1.42 keeps the interval
+  inside the margin, against 1.21 called for by its own AR(p) model. The
+  card should state the margin in the user's terms: any trend is smaller
+  than about 2.5% of the mean per decade. The other five non-significant
+  cases (precipitation in Yucatán and Iberia, soil moisture in Mexico
+  City, Yucatán and Iberia) get Inconclusive; for Yucatán precipitation
+  the `interval_optimistic` guard refuses it even if its slope were
+  centred.
 * For soil moisture, part of the unreachability comes from the model, not
   the data: the AR(1) widening is wider than the records' own
   autocorrelation implies (Table 8: 2.0–3.7 needed against 2.3–4.1
@@ -567,7 +580,7 @@ FPR is the worst case over 20, 30 and 45 years at the band's benchmark phi.
 
 ### Table 6. The 18 real cases
 
-Lag-1 autocorrelation of the anomalies, before and after removing the Theil–Sen line; the band uses the detrended value. The last five columns apply the no-trend rule to the case's own record (`clerk.prepare`, `examiner.theil_sen`, `examiner.mk_hamed_rao`; no simulation). Widened half-width: the larger side of the Theil–Sen 95% interval widened by the factor in the previous column, per decade, in the variable's units (°C, mm/day, fraction), as is the margin. Reachable: "no trend" could be given at all on this record, i.e. even at a slope of exactly 0 (half-width ≤ margin, `r1` inside the benchmark). Allowed: `thresholds.no_trend_allowed` on the case's slope, interval, `r1` and p.
+Lag-1 autocorrelation of the anomalies, before and after removing the Theil–Sen line; the band uses the detrended value. The last five columns apply the no-trend rule to the case's own record (`clerk.prepare`, `examiner.theil_sen`, `examiner.mk_hamed_rao`; no simulation). Widened half-width: the larger side of the Theil–Sen 95% interval widened by the factor in the previous column, per decade, in the variable's units (°C, mm/day, fraction), as is the margin. Reachable: "no trend" could be given at all on this record, i.e. even at a slope of exactly 0 (half-width ≤ margin, `r1` inside the benchmark; geometry only, before the noise-caveat guard). Allowed: `thresholds.no_trend_allowed` on the case's slope, interval, `r1` and p, which also refuses every case flagged `interval_optimistic` (last column).
 
 | region | variable | r1 | r1 detrended | band | verdict cap | Moderate needs p < | interval widening | widened half-width | no-trend margin | Hamed–Rao p | no trend reachable | no trend allowed | noise caveat |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|

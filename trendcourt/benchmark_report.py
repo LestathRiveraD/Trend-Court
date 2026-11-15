@@ -362,7 +362,8 @@ def real_case_no_trend(fpr: dict, th: dict) -> dict[tuple[str, str], dict]:
     * ``hr_p``: Hamed–Rao p-value.
     * ``reachable``: ``band_for(r1)`` is not ``None`` and ``half_width <= margin``.
     * ``allowed``: :func:`trendcourt.thresholds.no_trend_allowed` on the
-      case's own slope, interval, ``r1`` and p.
+      case's own slope, interval, ``r1`` and p, including its
+      ``interval_optimistic`` guard.
     """
     from trendcourt import clerk, examiner
 
@@ -383,7 +384,7 @@ def real_case_no_trend(fpr: dict, th: dict) -> dict[tuple[str, str], dict]:
             "half_width": half, "margin": margin, "regional_mean": mean, "hr_p": hr.p,
             "reachable": thresholds.band_for(r1d, th) is not None and half <= margin,
             "allowed": thresholds.no_trend_allowed(row["variable"], s, lo, hi, r1d, hr.p, th,
-                                                   regional_mean=mean),
+                                                   region=row["region"], regional_mean=mean),
         }
     return out
 
@@ -497,8 +498,9 @@ def tables_markdown(results: dict, th: dict) -> str:
         "widened by the factor in the previous column, per decade, in the variable's units "
         "(°C, mm/day, fraction), as is the margin. Reachable: \"no trend\" could be given at "
         "all on this record, i.e. even at a slope of exactly 0 (half-width ≤ margin, `r1` "
-        "inside the benchmark). Allowed: `thresholds.no_trend_allowed` on the case's slope, "
-        "interval, `r1` and p.",
+        "inside the benchmark; geometry only, before the noise-caveat guard). Allowed: "
+        "`thresholds.no_trend_allowed` on the case's slope, interval, `r1` and p, which also "
+        "refuses every case flagged `interval_optimistic` (last column).",
         table_real_cases(fpr, th),
         "### Table 7. The policy as applied, on trend-free AR(1) series",
         f"{applied['replicates']} trend-free replicates per row (`docs/benchmark/applied.json`). "
