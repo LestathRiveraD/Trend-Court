@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "source": "docs/benchmark.md",
+  "alpha_strong": 0.01,
+  "alpha_moderate": 0.05,
+  "window_agreement_strong": 0.8,
+  "no_trend_margin": {
+    "temperature": 0.1,
+    "precipitation": 0.05,
+    "soil_moisture": 0.005
+  },
+  "no_trend_margin_units": {
+    "temperature": "degC/decade",
+    "precipitation": "mm/day/decade",
+    "soil_moisture": "fraction/decade"
+  },
+  "interval_widening": {
+    "method": "ar1",
+    "factor": "sqrt((1 + r1) / (1 - r1)), 1 for r1 <= 0",
+    "r1": "lag-1 autocorrelation of the deseasonalized anomalies after removing the Theil-Sen line",
+    "applies_to": "the Theil-Sen interval used by the no-trend rule"
+  },
+  "fpr_policy": {
+    "max_fpr_strong": 0.05,
+    "max_fpr_moderate": 0.1,
+    "test": "hamed_rao",
+    "rate": "worst case over record lengths (20, 30, 45 years) at the band's upper benchmark phi, point estimate"
+  },
+  "autocorrelation_bands": [
+    {
+      "r1_min_exclusive": -1.0,
+      "r1_max": 0.3,
+      "benchmark_phi": 0.3,
+      "max_verdict": "strong",
+      "moderate_alpha": 0.05,
+      "hamed_rao_fpr": {
+        "0.05": {
+          "rate": 0.074,
+          "ci95": [
+            0.05854944426065261,
+            0.0920117360142491
+          ],
+          "n_years": 20
+        },
+        "0.01": {
+          "rate": 0.022,
+          "ci95": [
+            0.01383741417207386,
+            0.03311966451498788
+          ],
+          "n_years": 30
+        }
+      }
+    },
+    {
+      "r1_min_exclusive": 0.3,
+      "r1_max": 0.6,
+      "benchmark_phi": 0.6,
+      "max_verdict": "strong",
+      "moderate_alpha": 0.05,
+      "hamed_rao_fpr": {
+        "0.05": {
+          "rate": 0.094,
+          "ci95": [
+            0.07662899292737785,
+            0.11380243871897454
+          ],
+          "n_years": 20
+        },
+        "0.01": {
+          "rate": 0.025,
+          "ci95": [
+            0.016242535696882235,
+            0.036684823051923075
+          ],
+          "n_years": 20
+        }
+      }
+    },
+    {
+      "r1_min_exclusive": 0.6,
+      "r1_max": 0.8,
+      "benchmark_phi": 0.8,
+      "max_verdict": "moderate",
+      "moderate_alpha": 0.01,
+      "hamed_rao_fpr": {
+        "0.05": {
+          "rate": 0.163,
+          "ci95": [
+            0.14062554035964028,
+            0.18737814378448903
+          ],
+          "n_years": 20
+        },
+        "0.01": {
+          "rate": 0.07,
+          "ci95": [
+            0.05497152491916994,
+            0.08761623348928463
+          ],
+          "n_years": 30
+        }
+      }
+    },
+    {
+      "r1_min_exclusive": 0.8,
+      "r1_max": 0.9,
+      "benchmark_phi": 0.9,
+      "max_verdict": "inconclusive",
+      "moderate_alpha": null,
+      "hamed_rao_fpr": {
+        "0.05": {
+          "rate": 0.296,
+          "ci95": [
+            0.2678421975198892,
+            0.325364353404934
+          ],
+          "n_years": 45
+        },
+        "0.01": {
+          "rate": 0.168,
+          "ci95": [
+            0.1453322492747272,
+            0.19264105541450532
+          ],
+          "n_years": 45
+        }
+      }
+    }
+  ]
+}
