@@ -1,0 +1,142 @@
+"""The case: one region and variable taken through the Clerk and the Examiner.
+
+:func:`examine` is the first draft of the case JSON that the cache build
+and the site read. It adds no statistics of its own: every number comes
+straight from :func:`trendcourt.clerk.prepare` and the
+:mod:`trendcourt.examiner` wrappers, so Gate 1 (a) (``project.md`` §5)
+can check it against direct ``scipy`` and ``pymannkendall`` calls.
+
+Regenerate a reference file with::
+
+    python -m trendcourt mexicali temperature > docs/gate1/mexicali_temperature.json
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import sys
+
+import pandas as pd
+
+from trendcourt import clerk, examiner
+
+SCHEMA_VERSION = 1
+
+
+def _month(ts: pd.Timestamp | None) -> str | None:
+    return None if ts is None else f"{ts:%Y-%m}"
+
+
+def _floats(values) -> list[float | None]:
+    """Plain floats for strict JSON; NaN (missing) becomes ``None``."""
+    return [float(v) if math.isfinite(v) else None for v in values]
+
+
+def _provenance(p: clerk.Provenance) -> dict:
+    return {
+        "source": p.source,
+        "api": p.api,
+        "region_name": p.region_name,
+        "power_code": p.power_code,
+        "longname": p.longname,
+        "units": p.units,
+        "source_units": p.source_units,
+        "n_points": p.n_points,
+        "period": p.period,
+        "start": _month(p.start),
+        "end": _month(p.end),
+        "years": p.years,
+        "accessed_utc": p.accessed_utc,
+        "fill_value": p.fill_value,
+        "urls": list(p.urls),
+        "clerk_text": p.clerk_text(),
+    }
+
+
+def _quality(q: clerk.QualityResult) -> dict:
+    return {
+        "passed": q.passed,
+        "verdict": q.verdict,
+        "reason": q.reason,
+        "years_covered": q.years_covered,
+        "share_missing": q.share_missing,
+        "start": _month(q.start),
+        "end": _month(q.end),
+        "n_months": q.n_months,
+        "n_missing": q.n_missing,
+    }
+
+
+def examine(region: str, variable: str) -> dict:
+    """Run the Clerk and the Examiner on one region and variable.
+
+    Calls ``clerk.prepare(region, variable)``, then, with ``t`` the
+    prepared decimal-year time axis:
+
+    * ``theil_sen(t, anomalies)`` and ``ols(t, anomalies)``: slopes;
+    * ``mk_hamed_rao(anomalies)``: the main significance test;
+    * ``mk_seasonal(raw)``: the correlated seasonal check, on the raw
+      monthly series;
+    * ``consistency`` of the two tests.
+
+    All with the Examiner's defaults (95% interval, alpha 0.05, Hamed–Rao
+    ``lag=3``). Returns a plain dict that ``json.dumps(...,
+    allow_nan=False)`` accepts. If the record fails the quality gate the
+    statistics are not run and their keys are ``None``; the quality
+    block says why.
+    """
+    prepared = clerk.prepare(region, variable)
+    quality = prepared.quality
+
+    case = {
+        "schema_version": SCHEMA_VERSION,
+        "region": region,
+        "variable": prepared.provenance.variable or prepared.provenance.power_code,
+        "provenance": _provenance(prepared.provenance),
+        "quality": _quality(quality),
+        "series": {
+            "months": [f"{ts:%Y-%m}" for ts in prepared.raw.index],
+            "time": _floats(prepared.time),
+            "raw": _floats(prepared.raw),
+            "anomaly": _floats(prepared.anomalies),
+            "n_points": [int(n) for n in prepared.n_points],
+            "climatology": _floats(prepared.climatology),
+        },
+        "theil_sen": None,
+        "ols": None,
+        "mk_hamed_rao": None,
+        "mk_seasonal": None,
+        "consistency": None,
+    }
+    if not quality.passed:
+        return case
+
+    t, anomalies = prepared.time, prepared.anomalies
+    mk = examiner.mk_hamed_rao(anomalies)
+    smk = examiner.mk_seasonal(prepared.raw)
+    case.update(
+        theil_sen=examiner.theil_sen(t, anomalies).to_dict(),
+        ols=examiner.ols(t, anomalies).to_dict(),
+        mk_hamed_rao=mk.to_dict(),
+        mk_seasonal=smk.to_dict(),
+        consistency=examiner.consistency(mk, smk),
+    )
+    return case
+
+
+def to_json(case: dict) -> str:
+    """Canonical strict-JSON text of a case: sorted keys, 2-space indent,
+    trailing newline. Floats are written with ``repr``, so they read back
+    bit-for-bit."""
+    return json.dumps(case, indent=2, sort_keys=True, allow_nan=False) + "\n"
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if len(argv) != 2:
+        print("usage: python -m trendcourt REGION VARIABLE", file=sys.stderr)
+        return 2
+    sys.stdout.write(to_json(examine(*argv)))
+    return 0
+
