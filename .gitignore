@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .netrc
+
+# site (Vite)
+site/node_modules/
+site/dist/
