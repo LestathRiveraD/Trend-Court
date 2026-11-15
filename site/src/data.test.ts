@@ -71,7 +71,7 @@ describe("parseCase", () => {
     expect(c.series.anomaly).toHaveLength(540);
   });
 
-  it.each([0, 2, "1", undefined])("rejects schema_version %j loudly", (v) => {
+  it.each([0, 1, 3, "2", undefined])("rejects schema_version %j loudly", (v) => {
     expect(() => parseCase({ ...gate1(), schema_version: v })).toThrow(SchemaMismatchError);
   });
 
@@ -99,8 +99,19 @@ describe("parseCase", () => {
       mk_hamed_rao: null,
       mk_seasonal: null,
       consistency: null,
+      autocorrelation: null,
     };
     expect(parseCase(raw).quality.reason).toBe("too short");
+  });
+
+  it("rejects a case without a verdict", () => {
+    const { verdict: _, ...rest } = gate1();
+    expect(() => parseCase(rest)).toThrow(/missing verdict/);
+    expect(() => parseCase({ ...gate1(), verdict: null })).toThrow(/verdict/);
+  });
+
+  it("index.json lists the stand-in case's own verdict", () => {
+    expect(read("index.json").cases[0].verdict).toBe(gate1().verdict.label);
   });
 
   it("rejects non-objects", () => {
