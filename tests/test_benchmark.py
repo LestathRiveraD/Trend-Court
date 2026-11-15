@@ -348,6 +348,23 @@ def test_committed_coverage_json_is_complete():
         assert c["miss_low"] + c["miss_high"] == cov["n"] - cov["k"]
     assert len(res["onset"]) == len(benchmark.COVERAGE_SLOPES) * len(benchmark.COVERAGE_YEARS)
 
+    # The summary fields must agree with the cells (catches a stale or hand-edited file).
+    assert res["flagged_cells"] == [
+        {"phi": c["phi"], "slope_per_decade": c["slope_per_decade"], "n_years": c["n_years"],
+         "coverage": c["coverage"]["rate"]}
+        for c in res["cells"] if c["below_flag"]
+    ]
+    expected_onset = []
+    for s in benchmark.COVERAGE_SLOPES:
+        for n in benchmark.COVERAGE_YEARS:
+            flagged = [c["phi"] for c in res["cells"]
+                       if c["slope_per_decade"] == s and c["n_years"] == n and c["below_flag"]]
+            expected_onset.append({"slope_per_decade": s, "n_years": n,
+                                   "phi": min(flagged) if flagged else None})
+    assert res["onset"] == expected_onset
+    onset_phis = [o["phi"] for o in expected_onset if o["phi"] is not None]
+    assert res["onset_phi"] == (min(onset_phis) if onset_phis else None)
+
 
 def test_committed_power_json_is_complete():
     res = json.loads((clerk.REPO_ROOT / "docs" / "benchmark" / "power.json").read_text(encoding="utf-8"))
@@ -362,3 +379,59 @@ def test_committed_power_json_is_complete():
             r = c["rates"][alpha]
             assert r["rejection"]["n"] + c["n_failed"] == res["replicates"]
             assert r["detection"]["k"] <= r["rejection"]["k"]
+
+
+# --- scripts/benchmark.py CLI defaults ----------------------------------------
+
+
+def _load_benchmark_cli():
+    import importlib.util
+
+    path = clerk.REPO_ROOT / "scripts" / "benchmark.py"
+    spec = importlib.util.spec_from_file_location("_benchmark_cli", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.mark.parametrize("experiment, seed, replicates", [
+    ("fpr", 17, 1000),
+    ("coverage", 18, 1000),
+    ("power", 19, 1000),
+])
+def test_cli_per_experiment_defaults(monkeypatch, experiment, seed, replicates):
+    """Without --seed/--replicates/--out the CLI uses the experiment's own master
+    seed, replicate count and docs/benchmark/<experiment>.json. The run_* functions
+    are replaced, so nothing is simulated or written."""
+    cli = _load_benchmark_cli()
+    captured = {}
+
+    def fake(name):
+        def run(args):
+            captured[name] = args
+            return 0
+        return run
+
+    for name in ("fpr", "coverage", "power"):
+        monkeypatch.setattr(cli, f"run_{name}", fake(name))
+
+    assert cli.main(["--experiment", experiment, "--workers", "1"]) == 0
+    assert list(captured) == [experiment]
+    args = captured[experiment]
+    assert args.seed == seed
+    assert args.replicates == replicates
+    assert args.out == clerk.REPO_ROOT / "docs" / "benchmark" / f"{experiment}.json"
+    assert args.workers == 1
+
+
+def test_cli_explicit_arguments_override_defaults(monkeypatch, tmp_path):
+    cli = _load_benchmark_cli()
+    captured = []
+    monkeypatch.setattr(cli, "run_coverage", lambda args: captured.append(args) or 0)
+    out = tmp_path / "c.json"
+    assert cli.main(["--experiment", "coverage", "--replicates", "3", "--seed", "5",
+                     "--workers", "2", "--out", str(out)]) == 0
+    (args,) = captured
+    assert (args.replicates, args.seed, args.workers, args.out) == (3, 5, 2, out)
+    with pytest.raises(SystemExit):
+        cli.main(["--experiment", "coverage", "--replicates", "0"])
