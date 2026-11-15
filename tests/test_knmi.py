@@ -84,27 +84,99 @@ def fit(slope_per_year):
 
 def test_compare_converts_units_and_applies_tolerance():
     ours = fit(0.03)
-    per_year = knmi.compare("x", "annual", {"slope": ours.slope * 1.005, "units": "per_year"}, ours)
+    knmi_slope = round(ours.slope * 1.005, 8)
+    per_year = knmi.compare("x", "annual", {"slope": knmi_slope, "units": "per_year", "resolution": 1e-8}, ours)
     assert per_year.passed
+    assert per_year.bound == "relative"
     assert per_year.knmi_per_decade == pytest.approx(ours.slope_per_decade * 1.005)
-    assert per_year.rel_diff == pytest.approx(0.005)
+    assert per_year.rel_diff == pytest.approx(0.005, rel=1e-4)
 
-    per_decade = knmi.compare("x", "annual", {"slope": ours.slope_per_decade * 1.02, "units": "per_decade", "stderr": 0.1}, ours)
+    knmi_slope = round(ours.slope_per_decade * 1.02, 6)
+    entry = {"slope": knmi_slope, "units": "per_decade", "resolution": 1e-6, "stderr": 0.1}
+    per_decade = knmi.compare("x", "annual", entry, ours)
     assert not per_decade.passed
     assert per_decade.knmi_stderr_per_decade == 0.1
+
+
+def test_compare_allows_half_a_display_step():
+    # KNMI showing 3 decimals in degC/yr: our iberia slope 0.034367 displays as
+    # 0.034, 1.07% off. Correct, but it would fail a strict 1% test.
+    t = np.arange(1981, 2026, dtype=float)
+    ours = examiner.ols(t, 0.034367 * t + 0.01 * np.sin(t))
+    entry = {"slope": round(ours.slope, 3), "units": "per_year", "resolution": 0.001}
+    c = knmi.compare("iberia", "annual", entry, ours)
+    assert c.rel_diff > knmi.REL_TOL
+    assert c.passed and c.bound == "display"
+    assert c.allowed == pytest.approx(0.0005 * examiner.DECADE)
+
+    # One display step off is a real disagreement, not rounding.
+    entry["slope"] = round(ours.slope, 3) - 0.001
+    assert not knmi.compare("iberia", "annual", entry, ours).passed
+
+
+def test_compare_requires_a_consistent_resolution():
+    ours = fit(0.03)
+    with pytest.raises(ValueError, match="resolution"):
+        knmi.compare("x", "annual", {"slope": 0.03, "units": "per_year"}, ours)
+    with pytest.raises(ValueError, match="positive"):
+        knmi.compare("x", "annual", {"slope": 0.03, "units": "per_year", "resolution": 0}, ours)
+    with pytest.raises(ValueError, match="more digits"):
+        knmi.compare("x", "annual", {"slope": 0.0304, "units": "per_year", "resolution": 0.001}, ours)
 
 
 def test_compare_rejects_bad_units_and_series():
     ours = fit(0.03)
     with pytest.raises(ValueError, match="units"):
-        knmi.compare("x", "annual", {"slope": 0.03, "units": "per_month"}, ours)
+        knmi.compare("x", "annual", {"slope": 0.03, "units": "per_month", "resolution": 0.001}, ours)
     with pytest.raises(ValueError, match="series"):
-        knmi.compare("x", "daily", {"slope": 0.03, "units": "per_year"}, ours)
+        knmi.compare("x", "daily", {"slope": 0.03, "units": "per_year", "resolution": 0.001}, ours)
 
 
 def test_compare_all_skips_unfilled_entries():
     slopes = {"cases": {"iberia": {"monthly": {"slope": None, "units": "per_year"}}}}
     assert knmi.compare_all(slopes) == []
+
+
+def test_compare_all_requires_the_record_behind_a_slope():
+    entry = {"slope": 0.034, "units": "per_year", "resolution": 0.001, "knmi_settings": None, "evidence": "x.png"}
+    with pytest.raises(ValueError, match="knmi_settings"):
+        knmi.compare_all({"cases": {"iberia": {"annual": entry}}})
+
+
+# --- gate status / exit code ----------------------------------------------
+
+
+def _row(passed):
+    return knmi.Comparison("x", "annual", 0.3, 0.3, None, 0.0, 0.0, 0.003, "relative", knmi.REL_TOL, passed)
+
+
+def all_filled():
+    return {"cases": {r: {s: {"slope": 0.03} for s in knmi.SERIES} for r in knmi.CASES}}
+
+
+def test_pending_entries_lists_null_and_absent_entries():
+    slopes = all_filled()
+    assert knmi.pending_entries(slopes) == []
+    slopes["cases"]["iberia"]["monthly"]["slope"] = None
+    del slopes["cases"]["amazon"]
+    assert knmi.pending_entries(slopes) == [("iberia", "monthly"), ("amazon", "monthly"), ("amazon", "annual")]
+
+
+def test_gate_status_outcomes():
+    six_pass = [_row(True)] * 6
+    assert knmi.gate_status(six_pass, []) == knmi.GATE_PASS == 0
+    # one filled-in entry, five pending: not a pass (round-1 finding 2)
+    assert knmi.gate_status([_row(True)], [("x", "s")] * 5) == knmi.GATE_PENDING == 2
+    assert knmi.gate_status([], [("x", "s")] * 6) == knmi.GATE_PENDING
+    assert knmi.gate_status([], []) == knmi.GATE_PENDING
+    # a failure is reported even while other entries are pending
+    assert knmi.gate_status([_row(True), _row(False)], [("x", "s")] * 4) == knmi.GATE_FAIL == 1
+    assert knmi.gate_status([_row(False)] + [_row(True)] * 5, []) == knmi.GATE_FAIL
+
+
+def test_committed_slopes_file_accounts_for_every_entry():
+    slopes = knmi.load_knmi_slopes()
+    assert len(knmi.pending_entries(slopes)) + len(knmi.compare_all(slopes)) == len(knmi.CASES) * len(knmi.SERIES)
 
 
 def test_slopes_file_lists_every_case_and_series():
@@ -114,6 +186,7 @@ def test_slopes_file_lists_every_case_and_series():
         assert set(by_series) == set(knmi.SERIES)
         for entry in by_series.values():
             assert entry["units"] in knmi.UNIT_FACTORS
+            assert {"slope", "resolution", "stderr", "knmi_settings", "url", "accessed_utc", "evidence"} <= set(entry)
     assert slopes["tolerance"] == knmi.REL_TOL
     knmi.compare_all(slopes)  # filled entries must at least be well-formed
 

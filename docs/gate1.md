@@ -47,10 +47,23 @@ the data as well as the regression.
 ### Tolerance (fixed before comparing)
 
 The input is identical, so **KNMI's slope must agree with ours to within
-1% (relative)**. This is `knmi.REL_TOL = 0.01`, which is also stored in
-`docs/gate1/knmi_slopes.json`. Any remaining difference can only come from
-rounding in KNMI's display or from the time axis. At our slopes (about
-0.33–0.39 °C/decade), 1% is about 0.0035 °C/decade.
+1% (relative), or to within half of KNMI's last displayed digit, whichever
+is larger**:
+
+    |KNMI − ours| ≤ max(REL_TOL · |ours|, resolution / 2)    (both per decade)
+
+`REL_TOL = 0.01` is `knmi.REL_TOL`, also stored in
+`docs/gate1/knmi_slopes.json`. `resolution` is the place value of the last
+digit KNMI shows, recorded with each entry (for example `0.001` if KNMI
+shows `0.034`). The display term is there because a correct slope can be
+off by up to half a display step after rounding: our iberia slope
+0.034367 °C/yr shown as `0.034` is 1.07% off, and amazon's 0.033442 shown
+as `0.033` is 1.32% off, yet both are correct. At our slopes (about
+0.33–0.39 °C/decade), 1% is about 0.0035 °C/decade. A display of 3
+decimals in °C/yr widens that to 0.005 °C/decade; 4 decimals in °C/yr, or
+3 in °C/decade, leaves the 1% bound in force. The comparison table says
+which bound applied to each row. Apart from display rounding, any
+remaining difference can only come from the time axis.
 
 KNMI's standard error is recorded but is not a pass criterion. KNMI may
 adjust it for autocorrelation, and `linregress` does not.
@@ -60,27 +73,61 @@ adjust it for autocorrelation, and `linregress` does not.
 KNMI Climate Explorer shows a "verify that I am human" page to scripts.
 User-series uploads also need a registered KNMI login. A person
 therefore does this step in a browser. The menu names below follow KNMI's
-documentation. Correct them here if the live site differs.
+help pages ([season](https://climexp.knmi.nl/help/selectseason.shtml),
+[season, monthly data](https://climexp.knmi.nl/help/selectseason12.shtml),
+[anomalies](https://climexp.knmi.nl/help/anomalies.shtml),
+[detrend](https://climexp.knmi.nl/help/detrend.shtml),
+[units](https://climexp.knmi.nl/help/convertunits.shtml)). Correct them here
+if the live site differs.
 
 1. Log in to <https://climexp.knmi.nl/> with a registered account.
 2. Upload each `data/knmi/upload/*.dat` file as your own time series
    ("upload time series" in the time-series menu). Choose monthly or
    annual to match the file. Give it a name such as
    `tc_iberia_T2M_anom_monthly`.
-3. On the uploaded series' page, fit a linear trend against time over the
-   full period, 1981–2025. For the monthly file, use all months with no
-   seasonal averaging (one value per month, not per year). Do not apply
-   further anomalies or detrending.
-4. Note whether KNMI reports the slope per year or per decade.
+3. On the uploaded series' page, fit a linear trend against time with
+   these settings:
+
+   | KNMI control | Monthly file | Annual file |
+   |---|---|---|
+   | Starting month | **together** ("all months together, giving a single result"). Not **all**, which gives 12 separate per-month slopes, and not a single calendar month. | not offered / not applicable |
+   | Season length | **1** month | not applicable |
+   | Averaging vs. selecting months | either (identical at length 1) | not applicable |
+   | Anomalies | **unchecked** (the series already has the seasonal cycle removed) | unchecked, if offered |
+   | Detrend | **unchecked** | **unchecked** |
+   | Begin / end year | **1981** / **2025** | **1981** / **2025** |
+   | Units | **original units** (not "convert to standard units") | **original units** |
+
+   Leave every other option (filters, running means, lags) at "none" or
+   its default, and note what it was.
+4. Note whether KNMI reports the slope per year or per decade. If KNMI
+   offers a per-decade or per-century display, prefer it: it shows more
+   significant digits.
 5. Save the result page (HTML or a screenshot) as
    `docs/gate1/knmi_<region>_<series>.{html,png}`.
-6. Fill in that entry of `docs/gate1/knmi_slopes.json`: `slope`, `units`
-   (`per_year` or `per_decade`), `stderr` (or `null`), `knmi_settings`
-   (exact menu choices), `url`, `accessed_utc` and `evidence` (path of the
-   saved page).
-7. Run `python scripts/knmi_compare.py`. It prints the table below and exits
-   0 only if every filled-in case is within tolerance. It exits 2 while
-   nothing is filled in yet.
+6. Fill in that entry of `docs/gate1/knmi_slopes.json`:
+   - `slope`: **every digit KNMI shows**, without rounding;
+   - `units`: `per_year` or `per_decade` (per century: divide by 10 and
+     record `per_decade`, with `resolution` divided by 10 too);
+   - `resolution`: the place value of the last displayed digit of `slope`,
+     in the same units (KNMI shows `0.0344` → `0.0001`);
+   - `stderr`: in the same units, or `null`;
+   - `knmi_settings`: every choice from step 3, verbatim as KNMI labels
+     it, for example `"starting month: together; season length: 1;
+     anomalies: off; detrend: off; years: 1981-2025; units: original"`;
+   - `url`, `accessed_utc`, and `evidence` (path of the saved page).
+
+   `knmi_compare.py` refuses a filled-in `slope` without `resolution`,
+   `knmi_settings` and `evidence`, and a `slope` with more digits than
+   `resolution` allows.
+7. Run `python scripts/knmi_compare.py`. It prints the table below and
+   exits with:
+   - **0**: Gate 1 (c) passes. All six case/series entries are filled in
+     and within tolerance.
+   - **1**: at least one filled-in entry is outside tolerance (even if
+     others are still pending).
+   - **2**: nothing is out of tolerance, but some or all entries are still
+     pending. Partial results never exit 0.
 
 ### Our slopes (awaiting KNMI)
 
@@ -96,6 +143,7 @@ accessed 2026-11-14):
 | amazon | monthly | 0.033442 | 0.3344 | 0.0295 | pending |
 | amazon | annual | 0.033458 | 0.3346 | 0.0660 | pending |
 
-Gate 1 (c) passes when every row is filled in and within 1%, or when a
-difference is traced to a named cause and resolved. The saved KNMI pages
+Gate 1 (c) passes when every row is filled in and within tolerance
+(`knmi_compare.py` exits 0), or when a difference is traced to a named
+cause and resolved. The saved KNMI pages
 are committed under `docs/gate1/`.
