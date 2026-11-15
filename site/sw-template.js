@@ -37,9 +37,14 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== scope.origin || !url.pathname.startsWith(scope.pathname)) return;
   url.hash = "";
   url.search = "";
-  // Any navigation inside the scope gets the app shell (the case is chosen in the hash).
-  const key = req.mode === "navigate" ? indexHtml : url.href;
+  // A cached file is served as itself, also when opened in a tab (e.g. cases/index.json).
+  // Only a navigation that matches no cached file gets the app shell (the case is chosen in the hash).
   event.respondWith(
-    caches.open(CACHE).then((cache) => cache.match(key).then((hit) => hit ?? fetch(req))),
+    caches.open(CACHE).then((cache) =>
+      cache
+        .match(url.href)
+        .then((hit) => hit ?? (req.mode === "navigate" ? cache.match(indexHtml) : undefined))
+        .then((hit) => hit ?? fetch(req)),
+    ),
   );
 });
