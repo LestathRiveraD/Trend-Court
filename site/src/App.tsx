@@ -1,27 +1,60 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Data, Layout } from "plotly.js-dist-min";
-import { loadCase, loadIndex, type CaseFile, type IndexCase, type IndexFile } from "./data";
+import { loadCase, loadIndex, type CaseFile, type IndexFile } from "./data";
+import Picker from "./Picker";
+import { EMPTY, findCase, formatHash, parseHash, regions, worries, type Selection } from "./picker";
 import Plot from "./Plot";
 
 type Status<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; value: T };
 
 export default function App() {
   const [index, setIndex] = useState<Status<IndexFile>>({ state: "loading" });
-  const [selected, setSelected] = useState<IndexCase | null>(null);
+  const [selection, setSelection] = useState<Selection>(EMPTY);
+  const [badHash, setBadHash] = useState<string | null>(null);
   const [caseFile, setCaseFile] = useState<Status<CaseFile> | null>(null);
 
   useEffect(() => {
     loadIndex().then(
-      (value) => {
-        setIndex({ state: "ready", value });
-        setSelected(value.cases[0] ?? null);
-      },
+      (value) => setIndex({ state: "ready", value }),
       (err: Error) => setIndex({ state: "error", message: err.message }),
     );
   }, []);
 
+  // The URL hash (#/<region>/<variable>) is the source of truth for a complete selection,
+  // so a reload or a deep link from the video reopens the same case.
   useEffect(() => {
-    if (!selected) return;
+    if (index.state !== "ready") return;
+    const sync = () => {
+      const res = parseHash(window.location.hash, index.value);
+      if (res.kind === "case") {
+        setSelection(res.selection);
+        setBadHash(null);
+      } else if (res.kind === "empty") {
+        setSelection(EMPTY);
+        setBadHash(null);
+      } else {
+        setBadHash(res.hash);
+      }
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, [index]);
+
+  const onPick = (sel: Selection) => {
+    setSelection(sel);
+    setBadHash(null);
+    const hash = formatHash(sel);
+    if (hash && hash !== window.location.hash) window.location.hash = hash;
+  };
+
+  const selected = index.state === "ready" ? findCase(index.value, selection.region, selection.variable) : null;
+
+  useEffect(() => {
+    if (!selected) {
+      setCaseFile(null);
+      return;
+    }
     let cancelled = false;
     setCaseFile({ state: "loading" });
     loadCase(selected).then(
@@ -31,7 +64,8 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+    // Reload only when the case changes, not when a new index object names the same file.
+  }, [selected?.file]);
 
   const accessed = index.state === "ready" ? index.value.build.accessed.join(", ") : null;
 
@@ -52,8 +86,16 @@ export default function App() {
       <section className="slot" aria-labelledby="picker-h">
         <h2 id="picker-h">Pick a case</h2>
         {index.state === "loading" && <p className="muted">Loading the docket…</p>}
+        {badHash && (
+          <p className="error" role="alert">
+            The link <code>{badHash}</code> names no case on the docket. Pick one below.
+          </p>
+        )}
         {index.state === "ready" && (
-          <CaseList index={index.value} selected={selected} onSelect={setSelected} />
+          <>
+            <Picker index={index.value} selection={selection} onChange={onPick} />
+            <OnTheStand index={index.value} selection={selection} />
+          </>
         )}
       </section>
 
@@ -63,7 +105,7 @@ export default function App() {
           {caseFile?.state === "loading" && <p className="muted">The Clerk is fetching the file…</p>}
           {caseFile?.state === "error" && <ErrorBanner message={caseFile.message} />}
           {caseFile?.state === "ready" && <Evidence c={caseFile.value} />}
-          {!caseFile && index.state === "ready" && <p className="muted">Pick a case to see its evidence.</p>}
+          {!caseFile && index.state === "ready" && <p className="muted">Pick a worry and a place to see the evidence.</p>}
         </section>
 
         <section className="panel" aria-labelledby="verdict-h">
@@ -85,26 +127,19 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-/** Placeholder picker: lists the cases in index.json. Replaced by #23. */
-function CaseList({ index, selected, onSelect }: { index: IndexFile; selected: IndexCase | null; onSelect: (c: IndexCase) => void }) {
-  const region = (id: string) => index.regions.find((r) => r.id === id)?.name ?? id;
-  const variable = (id: string) => index.variables.find((v) => v.id === id)?.name ?? id;
-  if (!index.cases.length) return <p className="muted">index.json lists no cases yet.</p>;
+/** Says which case is on the stand, or what is still to pick. Polite live region for screen readers. */
+function OnTheStand({ index, selection }: { index: IndexFile; selection: Selection }) {
+  const worry = worries(index).find((w) => w.variable === selection.variable);
+  const region = regions(index).find((r) => r.id === selection.region);
+  let text: string;
+  if (worry && region) text = `On the stand: ${worry.label} in ${region.name}.`;
+  else if (worry) text = `${worry.label} it is. Now pick where.`;
+  else if (region) text = `${region.name} it is. Now pick what worries you.`;
+  else text = "Pick what worries you and where, in either order.";
   return (
-    <div className="cases" role="group" aria-label="Cases">
-      {index.cases.map((c) => (
-        <button
-          key={c.file}
-          type="button"
-          className="case-btn"
-          aria-pressed={selected?.file === c.file}
-          onClick={() => onSelect(c)}
-        >
-          <span className="case-var">{variable(c.variable)}</span>
-          <span className="case-region">{region(c.region)}</span>
-        </button>
-      ))}
-    </div>
+    <p className="stand" aria-live="polite">
+      {text}
+    </p>
   );
 }
 
