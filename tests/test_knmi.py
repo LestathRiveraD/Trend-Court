@@ -182,7 +182,8 @@ def test_compare_all_requires_evidence_file_under_docs_gate1(tmp_path):
 
 def test_compare_script_exits_3_on_a_malformed_entry(tmp_path):
     slopes = knmi.load_knmi_slopes()
-    slopes["cases"]["iberia"]["annual"]["slope"] = 0.034  # no resolution, settings or evidence
+    entry = slopes["cases"]["iberia"]["annual"]
+    entry.update(slope=0.034, resolution=None, knmi_settings=None, evidence=None)  # no resolution, settings or evidence
     path = tmp_path / "slopes.json"
     path.write_text(json.dumps(slopes), encoding="utf-8")
     script = Path(__file__).resolve().parents[1] / "scripts" / "knmi_compare.py"

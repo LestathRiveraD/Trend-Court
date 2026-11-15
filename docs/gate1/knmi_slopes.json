@@ -4,68 +4,68 @@
   "cases": {
     "mexicali": {
       "monthly": {
-        "slope": null,
+        "slope": 0.0389869,
         "units": "per_year",
-        "resolution": null,
-        "stderr": null,
-        "knmi_settings": null,
-        "url": null,
-        "accessed_utc": null,
-        "evidence": null
+        "resolution": 1e-07,
+        "stderr": 0.005106,
+        "knmi_settings": "Correlate with other time series: system-defined series 'time'; starting month: together of timeseries; season: averaging over 1 month(s) of the timeseries, same month(s) of the index; variable: regression; years: 1981-2025; anomalies: subtract seasonal cycle off; lag: 0; only for: empty; logarithm/sqrt: off; rank correlation/contingency tables: off; detrend everything: off; take year-on-year differences: off; subtract mean of previous years: empty; fit: straight line; decorrelation scale: 0; note: uploaded as type 'something else' (KNMI labels it Index), not temperature; does not affect the fit",
+        "url": "https://climexp.knmi.nl/corseries.cgi?TYPE=i&WMO=uploaded26&STATION=mexicali_T2M_anom_monthly&NAME=Index&NPERYEAR=12 (form page; the result is a POST to correlate.cgi; user series are erased 3 days after last use)",
+        "accessed_utc": "2026-11-15T02:20:00Z",
+        "evidence": "docs/gate1/knmi_mexicali_monthly.html"
       },
       "annual": {
-        "slope": null,
+        "slope": 0.039006,
         "units": "per_year",
-        "resolution": null,
-        "stderr": null,
-        "knmi_settings": null,
-        "url": null,
-        "accessed_utc": null,
-        "evidence": null
+        "resolution": 1e-06,
+        "stderr": 0.006483,
+        "knmi_settings": "Correlate with other time series: system-defined series 'time'; variable: regression; years: 1981-2025; anomalies: subtract seasonal cycle off; lag: 0; only for: empty; logarithm/sqrt: off; rank correlation/contingency tables: off; detrend everything: off; take year-on-year differences: off; subtract mean of previous years: empty; fit: straight line; decorrelation scale: 0",
+        "url": "https://climexp.knmi.nl/corseries.cgi?TYPE=t&WMO=uploaded10&STATION=mexicali_T2M_anom_annual&NAME=Temperature&NPERYEAR=1 (form page; the result is a POST to correlate.cgi; user series are erased 3 days after last use)",
+        "accessed_utc": "2026-11-15T02:15:00Z",
+        "evidence": "docs/gate1/knmi_mexicali_annual.html"
       }
     },
     "iberia": {
       "monthly": {
-        "slope": null,
+        "slope": 0.0343675,
         "units": "per_year",
-        "resolution": null,
-        "stderr": null,
-        "knmi_settings": null,
-        "url": null,
-        "accessed_utc": null,
-        "evidence": null
+        "resolution": 1e-07,
+        "stderr": 0.004678,
+        "knmi_settings": "Correlate with other time series: system-defined series 'time'; starting month: together of timeseries; season: averaging over 1 month(s) of the timeseries, same month(s) of the index; variable: regression; years: 1981-2025; anomalies: subtract seasonal cycle off; lag: 0; only for: empty; logarithm/sqrt: off; rank correlation/contingency tables: off; detrend everything: off; take year-on-year differences: off; subtract mean of previous years: empty; fit: straight line; decorrelation scale: 0",
+        "url": "https://climexp.knmi.nl/corseries.cgi?TYPE=t&WMO=uploaded9&STATION=iberia_T2M_anom_monthly&NAME=Temperature&NPERYEAR=12 (form page; the result is a POST to correlate.cgi; user series are erased 3 days after last use)",
+        "accessed_utc": "2026-11-15T02:20:00Z",
+        "evidence": "docs/gate1/knmi_iberia_monthly.html"
       },
       "annual": {
-        "slope": null,
+        "slope": 0.0343836,
         "units": "per_year",
-        "resolution": null,
-        "stderr": null,
-        "knmi_settings": null,
-        "url": null,
-        "accessed_utc": null,
-        "evidence": null
+        "resolution": 1e-07,
+        "stderr": 0.006303,
+        "knmi_settings": "Correlate with other time series: system-defined series 'time'; variable: regression; years: 1981-2025; anomalies: subtract seasonal cycle off; lag: 0; only for: empty; logarithm/sqrt: off; rank correlation/contingency tables: off; detrend everything: off; take year-on-year differences: off; subtract mean of previous years: empty; fit: straight line; decorrelation scale: 0",
+        "url": "https://climexp.knmi.nl/corseries.cgi?TYPE=t&WMO=uploaded8&STATION=iberia_T2M_anom_annual&NAME=Temperature&NPERYEAR=1 (form page; the result is a POST to correlate.cgi; user series are erased 3 days after last use)",
+        "accessed_utc": "2026-11-15T02:15:00Z",
+        "evidence": "docs/gate1/knmi_iberia_annual.html"
       }
     },
     "amazon": {
       "monthly": {
-        "slope": null,
+        "slope": 0.0334416,
         "units": "per_year",
-        "resolution": null,
-        "stderr": null,
-        "knmi_settings": null,
-        "url": null,
-        "accessed_utc": null,
-        "evidence": null
+        "resolution": 1e-07,
+        "stderr": 0.002952,
+        "knmi_settings": "Correlate with other time series: system-defined series 'time'; starting month: together of timeseries; season: averaging over 1 month(s) of the timeseries, same month(s) of the index; variable: regression; years: 1981-2025; anomalies: subtract seasonal cycle off; lag: 0; only for: empty; logarithm/sqrt: off; rank correlation/contingency tables: off; detrend everything: off; take year-on-year differences: off; subtract mean of previous years: empty; fit: straight line; decorrelation scale: 0",
+        "url": "https://climexp.knmi.nl/corseries.cgi?TYPE=t&WMO=uploaded7&STATION=amazon_T2M_anom_monthly&NAME=Temperature&NPERYEAR=12 (form page; the result is a POST to correlate.cgi; user series are erased 3 days after last use)",
+        "accessed_utc": "2026-11-15T02:20:00Z",
+        "evidence": "docs/gate1/knmi_amazon_monthly.html"
       },
       "annual": {
-        "slope": null,
+        "slope": 0.0334581,
         "units": "per_year",
-        "resolution": null,
-        "stderr": null,
-        "knmi_settings": null,
-        "url": null,
-        "accessed_utc": null,
-        "evidence": null
+        "resolution": 1e-07,
+        "stderr": 0.006596,
+        "knmi_settings": "Correlate with other time series: system-defined series 'time'; variable: regression; years: 1981-2025; anomalies: subtract seasonal cycle off; lag: 0; only for: empty; logarithm/sqrt: off; rank correlation/contingency tables: off; detrend everything: off; take year-on-year differences: off; subtract mean of previous years: empty; fit: straight line; decorrelation scale: 0",
+        "url": "https://climexp.knmi.nl/corseries.cgi?TYPE=t&WMO=uploaded1&STATION=amazon_T2M_anom_annual&NAME=Temperature&NPERYEAR=1 (form page; the result is a POST to correlate.cgi; user series are erased 3 days after last use)",
+        "accessed_utc": "2026-11-15T02:15:00Z",
+        "evidence": "docs/gate1/knmi_amazon_annual.html"
       }
     }
   }

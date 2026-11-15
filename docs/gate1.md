@@ -152,24 +152,43 @@ if the live site differs.
      invalid, or the evidence file does not exist. The message says which;
      fix the file and run it again.
 
-### Our slopes (awaiting KNMI)
+### Result: Gate 1 (c) passes
 
-From `python scripts/knmi_compare.py` on the committed data (POWER
-accessed 2026-11-14):
+Run on KNMI Climate Explorer on 2026-11-15 (about 02:15–02:20 UTC). Each
+uploaded series was regressed on KNMI's system-defined `time` series
+("Correlate with other time series", variable **regression**, years
+1981–2025, straight-line fit, every other option off; monthly files with
+starting month **together** and season **averaging over 1 month**). The
+exact settings for each entry are in `docs/gate1/knmi_slopes.json`, and the
+saved result pages are `docs/gate1/knmi_<region>_<series>.html` (with
+their plots in the matching `_files/` folder).
 
-| Case | Series | Ours (°C/yr) | Ours (°C/decade) | Ours s.e. (°C/decade) | KNMI |
-|---|---|---|---|---|---|
-| mexicali | monthly | 0.038987 | 0.3899 | 0.0511 | pending |
-| mexicali | annual | 0.039006 | 0.3901 | 0.0648 | pending |
-| iberia | monthly | 0.034367 | 0.3437 | 0.0468 | pending |
-| iberia | annual | 0.034384 | 0.3438 | 0.0630 | pending |
-| amazon | monthly | 0.033442 | 0.3344 | 0.0295 | pending |
-| amazon | annual | 0.033458 | 0.3346 | 0.0660 | pending |
+| Case | Series | Ours (°C/yr) | KNMI `b` (°C/yr) | Ours s.e. | KNMI s.e. | Rel. diff |
+|---|---|---|---|---|---|---|
+| mexicali | monthly | 0.03898686 | 0.0389869 | 0.005106 | 0.005106 | 0.00% |
+| mexicali | annual | 0.03900596 | 0.039006 | 0.006483 | 0.006483 | 0.00% |
+| iberia | monthly | 0.03436749 | 0.0343675 | 0.004678 | 0.004678 | 0.00% |
+| iberia | annual | 0.03438360 | 0.0343836 | 0.006303 | 0.006303 | 0.00% |
+| amazon | monthly | 0.03344156 | 0.0334416 | 0.002952 | 0.002952 | 0.00% |
+| amazon | annual | 0.03345810 | 0.0334581 | 0.006596 | 0.006596 | 0.00% |
 
-Gate 1 (c) passes when every row is filled in and within tolerance
-(`knmi_compare.py` exits 0), or when a difference is traced to a named
-cause and resolved. The saved KNMI pages
-are committed under `docs/gate1/`.
+`python scripts/knmi_compare.py` exits **0**: all six agree to every digit
+KNMI displays, far inside the 1% tolerance. The standard errors also
+match, so KNMI's fit is plain OLS on our exact series. Only the intercepts
+`a` differ, because KNMI measures time from 2000 at mid-period. A constant
+time offset moves the intercept and never the slope.
+
+Notes:
+
+- The first attempt at the monthly fits used starting month **all**. That
+  gives 12 separate per-calendar-month correlations, not one slope. They
+  were re-run with **together**. Only the re-runs are recorded.
+- `mexicali_T2M_anom_monthly` was uploaded with type "something else", so
+  KNMI labels it "Index" instead of "Temperature". The type only changes
+  labels. The fit is identical.
+- KNMI erases user series 3 days after last use, so the `url` fields
+  point to the form page for the record, not to a live result.
+
 ## (b) POWER T2M against Giovanni MERRA-2 T2M
 
 Giovanni does not serve POWER, but POWER's meteorology is derived from
