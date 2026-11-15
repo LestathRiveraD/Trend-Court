@@ -7,6 +7,8 @@ Puts climate-trend claims on trial against NASA data (POWER, MERRA-2, GLDAS, FLD
 - `trendcourt/knmi.py`: Gate 1 (c) KNMI Climate Explorer cross-check (upload files, slope comparison)
 - `trendcourt/crosscheck.py`: Gate 1 cross-checks against reference series (Giovanni MERRA-2)
 - `scripts/gate1_giovanni.py`: reruns Gate 1 (b) and writes `docs/gate1/`
+- `trendcourt/benchmark.py`: synthetic series with known truth, run through the same code path as a real case
+- `scripts/benchmark.py --experiment fpr`: false-positive rate on trend-free AR(1) noise; writes `docs/benchmark/fpr.json` (about 4–5 min with 12 processes, `--workers` sets the count)
 - `trendcourt/case.py`: `trendcourt.examine(region, variable)`, the case JSON (`python -m trendcourt mexicali temperature`)
 - `data/`: raw downloads and region definitions
 - `docs/`: method notes; `docs/gate1/` holds the Gate 1 (a) reference case

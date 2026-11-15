@@ -1,0 +1,1299 @@
+{
+  "experiment": "fpr",
+  "description": "Rejection rate of the trend tests on trend-free monthly series (seasonal cycle + stationary AR(1) noise), through trendcourt.benchmark.run_case: clerk.deseasonalize, examiner.mk_hamed_rao(anomalies, lag=3), examiner.mk_seasonal(raw). A test rejects when p < alpha. 'inflated' means the whole exact 95% binomial interval lies above alpha.",
+  "grid": {
+    "phi": [
+      0.0,
+      0.3,
+      0.6,
+      0.8,
+      0.9
+    ],
+    "n_years": [
+      20,
+      30,
+      45
+    ]
+  },
+  "replicates": 1000,
+  "series": {
+    "start": "1981-01",
+    "sigma": 1.0,
+    "seasonal_amp": 10.0,
+    "slope_per_decade": 0.0,
+    "burn_in": 600,
+    "sigma_meaning": "stationary standard deviation of the AR(1) noise"
+  },
+  "seeds": {
+    "master": 17,
+    "scheme": "numpy.random.default_rng((master, round(1000 * phi), n_years, replicate))",
+    "replicate_range": [
+      0,
+      999
+    ]
+  },
+  "alphas": [
+    0.05,
+    0.01
+  ],
+  "ci": {
+    "level": 0.95,
+    "method": "Clopper-Pearson (scipy.stats.binomtest, method='exact')"
+  },
+  "cells": [
+    {
+      "phi": 0.0,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 45,
+            "rate": 0.045,
+            "ci95": [
+              0.033009625431148756,
+              0.05975283269340778
+            ],
+            "inflated": false
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 12,
+            "rate": 0.012,
+            "ci95": [
+              0.006215525559595242,
+              0.020867679591036463
+            ],
+            "inflated": false
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 42,
+            "rate": 0.042,
+            "ci95": [
+              0.03043470626314001,
+              0.05635029157574473
+            ],
+            "inflated": false
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 5,
+            "rate": 0.005,
+            "ci95": [
+              0.0016254195175627604,
+              0.011629470559812172
+            ],
+            "inflated": false
+          }
+        }
+      },
+      "inflated": []
+    },
+    {
+      "phi": 0.0,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 57,
+            "rate": 0.057,
+            "ci95": [
+              0.0434535819369586,
+              0.07322272946066226
+            ],
+            "inflated": false
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 14,
+            "rate": 0.014,
+            "ci95": [
+              0.007674501565020783,
+              0.023378156010314496
+            ],
+            "inflated": false
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 54,
+            "rate": 0.054,
+            "ci95": [
+              0.04082335112563071,
+              0.06987400557706736
+            ],
+            "inflated": false
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 7,
+            "rate": 0.007,
+            "ci95": [
+              0.0028188587596205254,
+              0.014369194978918656
+            ],
+            "inflated": false
+          }
+        }
+      },
+      "inflated": []
+    },
+    {
+      "phi": 0.0,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 44,
+            "rate": 0.044,
+            "ci95": [
+              0.03214949701087143,
+              0.05862041920633091
+            ],
+            "inflated": false
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 8,
+            "rate": 0.008,
+            "ci95": [
+              0.003459976165329311,
+              0.015702049176074706
+            ],
+            "inflated": false
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 47,
+            "rate": 0.047,
+            "ci95": [
+              0.03473506226679597,
+              0.06201263069330516
+            ],
+            "inflated": false
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 8,
+            "rate": 0.008,
+            "ci95": [
+              0.003459976165329311,
+              0.015702049176074706
+            ],
+            "inflated": false
+          }
+        }
+      },
+      "inflated": []
+    },
+    {
+      "phi": 0.3,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 74,
+            "rate": 0.074,
+            "ci95": [
+              0.05854944426065261,
+              0.0920117360142491
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 18,
+            "rate": 0.018,
+            "ci95": [
+              0.01070194792941471,
+              0.028299041249019215
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 61,
+            "rate": 0.061,
+            "ci95": [
+              0.0469778755410802,
+              0.07767077404912352
+            ],
+            "inflated": false
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 8,
+            "rate": 0.008,
+            "ci95": [
+              0.003459976165329311,
+              0.015702049176074706
+            ],
+            "inflated": false
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05"
+      ]
+    },
+    {
+      "phi": 0.3,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 71,
+            "rate": 0.071,
+            "ci95": [
+              0.05586464824989752,
+              0.08871644088678736
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 22,
+            "rate": 0.022,
+            "ci95": [
+              0.01383741417207386,
+              0.03311966451498788
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 64,
+            "rate": 0.064,
+            "ci95": [
+              0.049633089291849015,
+              0.08099507436705101
+            ],
+            "inflated": false
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 13,
+            "rate": 0.013,
+            "ci95": [
+              0.006939617502851478,
+              0.022127803636778513
+            ],
+            "inflated": false
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05"
+      ]
+    },
+    {
+      "phi": 0.3,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 67,
+            "rate": 0.067,
+            "ci95": [
+              0.05229783640004518,
+              0.08431003710244142
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 15,
+            "rate": 0.015,
+            "ci95": [
+              0.008419049750034383,
+              0.024619700097041227
+            ],
+            "inflated": false
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 60,
+            "rate": 0.06,
+            "ci95": [
+              0.04609503542248434,
+              0.07656049040393477
+            ],
+            "inflated": false
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 13,
+            "rate": 0.013,
+            "ci95": [
+              0.006939617502851478,
+              0.022127803636778513
+            ],
+            "inflated": false
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.05"
+      ]
+    },
+    {
+      "phi": 0.6,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 94,
+            "rate": 0.094,
+            "ci95": [
+              0.07662899292737785,
+              0.11380243871897454
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 25,
+            "rate": 0.025,
+            "ci95": [
+              0.016242535696882235,
+              0.036684823051923075
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 72,
+            "rate": 0.072,
+            "ci95": [
+              0.056758687554561704,
+              0.08981574917535085
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 7,
+            "rate": 0.007,
+            "ci95": [
+              0.0028188587596205254,
+              0.014369194978918656
+            ],
+            "inflated": false
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.6,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 65,
+            "rate": 0.065,
+            "ci95": [
+              0.05052030968961793,
+              0.08210106992137105
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 20,
+            "rate": 0.02,
+            "ci95": [
+              0.012258267972406327,
+              0.030720032682609096
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 56,
+            "rate": 0.056,
+            "ci95": [
+              0.04257554968661719,
+              0.07210774628325274
+            ],
+            "inflated": false
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 9,
+            "rate": 0.009,
+            "ci95": [
+              0.004123395660342473,
+              0.017015783069894548
+            ],
+            "inflated": false
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05"
+      ]
+    },
+    {
+      "phi": 0.6,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 72,
+            "rate": 0.072,
+            "ci95": [
+              0.056758687554561704,
+              0.08981574917535085
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 18,
+            "rate": 0.018,
+            "ci95": [
+              0.01070194792941471,
+              0.028299041249019215
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 65,
+            "rate": 0.065,
+            "ci95": [
+              0.05052030968961793,
+              0.08210106992137105
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 14,
+            "rate": 0.014,
+            "ci95": [
+              0.007674501565020783,
+              0.023378156010314496
+            ],
+            "inflated": false
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.8,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 163,
+            "rate": 0.163,
+            "ci95": [
+              0.14062554035964028,
+              0.18737814378448903
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 49,
+            "rate": 0.049,
+            "ci95": [
+              0.03646705917204781,
+              0.06426605314016964
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 95,
+            "rate": 0.095,
+            "ci95": [
+              0.07754020708165503,
+              0.11488484440445194
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 21,
+            "rate": 0.021,
+            "ci95": [
+              0.013045192290387692,
+              0.0319223351804155
+            ],
+            "inflated": true
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.8,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 162,
+            "rate": 0.162,
+            "ci95": [
+              0.13968511158457791,
+              0.18632465492476893
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 70,
+            "rate": 0.07,
+            "ci95": [
+              0.05497152491916994,
+              0.08761623348928463
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 116,
+            "rate": 0.116,
+            "ci95": [
+              0.09680595526975852,
+              0.1374867505495638
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 27,
+            "rate": 0.027,
+            "ci95": [
+              0.0178669059252497,
+              0.039041746805970216
+            ],
+            "inflated": true
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.8,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 163,
+            "rate": 0.163,
+            "ci95": [
+              0.14062554035964028,
+              0.18737814378448903
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 63,
+            "rate": 0.063,
+            "ci95": [
+              0.04874692755658057,
+              0.07988804187335455
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 115,
+            "rate": 0.115,
+            "ci95": [
+              0.09588337997326377,
+              0.13641556786283282
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 34,
+            "rate": 0.034,
+            "ci95": [
+              0.02365864810759674,
+              0.04718943861570736
+            ],
+            "inflated": true
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.9,
+      "n_years": 20,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 281,
+            "rate": 0.281,
+            "ci95": [
+              0.25331970597856596,
+              0.30997601428736204
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 154,
+            "rate": 0.154,
+            "ci95": [
+              0.1321730283726533,
+              0.17788548052787567
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 175,
+            "rate": 0.175,
+            "ci95": [
+              0.15193403290953067,
+              0.1999968255693369
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 66,
+            "rate": 0.066,
+            "ci95": [
+              0.051408566018918474,
+              0.08320605046140274
+            ],
+            "inflated": true
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.9,
+      "n_years": 30,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 278,
+            "rate": 0.278,
+            "ci95": [
+              0.25041975045140225,
+              0.30689381772819163
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 163,
+            "rate": 0.163,
+            "ci95": [
+              0.14062554035964028,
+              0.18737814378448903
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 198,
+            "rate": 0.198,
+            "ci95": [
+              0.17371978110414946,
+              0.22407220517161824
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 70,
+            "rate": 0.07,
+            "ci95": [
+              0.05497152491916994,
+              0.08761623348928463
+            ],
+            "inflated": true
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.9,
+      "n_years": 45,
+      "replicates": 1000,
+      "n_failed": 0,
+      "failures": [],
+      "rates": {
+        "hamed_rao": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 296,
+            "rate": 0.296,
+            "ci95": [
+              0.2678421975198892,
+              0.325364353404934
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 168,
+            "rate": 0.168,
+            "ci95": [
+              0.1453322492747272,
+              0.19264105541450532
+            ],
+            "inflated": true
+          }
+        },
+        "seasonal": {
+          "0.05": {
+            "alpha": 0.05,
+            "n": 1000,
+            "rejections": 210,
+            "rate": 0.21,
+            "ci95": [
+              0.18513884636850597,
+              0.23658098485781315
+            ],
+            "inflated": true
+          },
+          "0.01": {
+            "alpha": 0.01,
+            "n": 1000,
+            "rejections": 94,
+            "rate": 0.094,
+            "ci95": [
+              0.07662899292737785,
+              0.11380243871897454
+            ],
+            "inflated": true
+          }
+        }
+      },
+      "inflated": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    }
+  ],
+  "inflated_cells": [
+    {
+      "phi": 0.3,
+      "n_years": 20,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05"
+      ]
+    },
+    {
+      "phi": 0.3,
+      "n_years": 30,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05"
+      ]
+    },
+    {
+      "phi": 0.3,
+      "n_years": 45,
+      "tests": [
+        "hamed_rao@0.05"
+      ]
+    },
+    {
+      "phi": 0.6,
+      "n_years": 20,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.6,
+      "n_years": 30,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05"
+      ]
+    },
+    {
+      "phi": 0.6,
+      "n_years": 45,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.8,
+      "n_years": 20,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.8,
+      "n_years": 30,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.8,
+      "n_years": 45,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.9,
+      "n_years": 20,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.9,
+      "n_years": 30,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    },
+    {
+      "phi": 0.9,
+      "n_years": 45,
+      "tests": [
+        "hamed_rao@0.01",
+        "hamed_rao@0.05",
+        "seasonal@0.01",
+        "seasonal@0.05"
+      ]
+    }
+  ],
+  "real_cases": [
+    {
+      "region": "mexicali",
+      "variable": "temperature",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.2751717849774034,
+      "r1_detrended": 0.19679140033750528,
+      "phi_bracket": [
+        0.0,
+        0.3
+      ]
+    },
+    {
+      "region": "mexicali",
+      "variable": "precipitation",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.21129033473687364,
+      "r1_detrended": 0.19613640964852944,
+      "phi_bracket": [
+        0.0,
+        0.3
+      ]
+    },
+    {
+      "region": "mexicali",
+      "variable": "soil_moisture",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.795844131378716,
+      "r1_detrended": 0.7906811993315308,
+      "phi_bracket": [
+        0.6,
+        0.8
+      ]
+    },
+    {
+      "region": "mexico_city",
+      "variable": "temperature",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.5946268224585031,
+      "r1_detrended": 0.4274259209527135,
+      "phi_bracket": [
+        0.3,
+        0.6
+      ]
+    },
+    {
+      "region": "mexico_city",
+      "variable": "precipitation",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.12730925682575042,
+      "r1_detrended": 0.12711130545144037,
+      "phi_bracket": [
+        0.0,
+        0.3
+      ]
+    },
+    {
+      "region": "mexico_city",
+      "variable": "soil_moisture",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.7552416925345975,
+      "r1_detrended": 0.7532371003096122,
+      "phi_bracket": [
+        0.6,
+        0.8
+      ]
+    },
+    {
+      "region": "yucatan",
+      "variable": "temperature",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.4314661727987368,
+      "r1_detrended": 0.34305646691582614,
+      "phi_bracket": [
+        0.3,
+        0.6
+      ]
+    },
+    {
+      "region": "yucatan",
+      "variable": "precipitation",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.07099861337316617,
+      "r1_detrended": 0.07003010135005103,
+      "phi_bracket": [
+        0.0,
+        0.3
+      ]
+    },
+    {
+      "region": "yucatan",
+      "variable": "soil_moisture",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.6768298227624743,
+      "r1_detrended": 0.6757626864688572,
+      "phi_bracket": [
+        0.6,
+        0.8
+      ]
+    },
+    {
+      "region": "sahel",
+      "variable": "temperature",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.33986598482168634,
+      "r1_detrended": 0.32760020853527766,
+      "phi_bracket": [
+        0.3,
+        0.6
+      ]
+    },
+    {
+      "region": "sahel",
+      "variable": "precipitation",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.16752894889627126,
+      "r1_detrended": 0.16327779275822799,
+      "phi_bracket": [
+        0.0,
+        0.3
+      ]
+    },
+    {
+      "region": "sahel",
+      "variable": "soil_moisture",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.8269187340765519,
+      "r1_detrended": 0.8070596769888685,
+      "phi_bracket": [
+        0.8,
+        0.9
+      ]
+    },
+    {
+      "region": "amazon",
+      "variable": "temperature",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.8223679455071546,
+      "r1_detrended": 0.7821523045176955,
+      "phi_bracket": [
+        0.8,
+        0.9
+      ]
+    },
+    {
+      "region": "amazon",
+      "variable": "precipitation",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.3797706500937871,
+      "r1_detrended": 0.32770164501883375,
+      "phi_bracket": [
+        0.3,
+        0.6
+      ]
+    },
+    {
+      "region": "amazon",
+      "variable": "soil_moisture",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.9009310611743188,
+      "r1_detrended": 0.8895318924032422,
+      "phi_bracket": [
+        0.9
+      ]
+    },
+    {
+      "region": "iberia",
+      "variable": "temperature",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.2859453495126217,
+      "r1_detrended": 0.21458026809668113,
+      "phi_bracket": [
+        0.0,
+        0.3
+      ]
+    },
+    {
+      "region": "iberia",
+      "variable": "precipitation",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.1572115883178992,
+      "r1_detrended": 0.15187860014835525,
+      "phi_bracket": [
+        0.0,
+        0.3
+      ]
+    },
+    {
+      "region": "iberia",
+      "variable": "soil_moisture",
+      "quality_passed": true,
+      "n_months": 540,
+      "r1": 0.7898047443581157,
+      "r1_detrended": 0.7839162920369617,
+      "phi_bracket": [
+        0.6,
+        0.8
+      ]
+    }
+  ],
+  "versions": {
+    "numpy": "2.5.4",
+    "pandas": "3.1.1",
+    "scipy": "1.18.1",
+    "pymannkendall": "1.4.3",
+    "python": "3.12.3"
+  }
+}
