@@ -1,4 +1,7 @@
 {
+  "autocorrelation": {
+    "r1_detrended": 0.15187860014835525
+  },
   "consistency": {
     "agree": true,
     "alpha": 0.05,
@@ -94,7 +97,7 @@
     "years_covered": 45.0
   },
   "region": "iberia",
-  "schema_version": 1,
+  "schema_version": 2,
   "series": {
     "anomaly": [
       -0.9863342877995253,
@@ -2835,5 +2838,39 @@
     "t_end": 2025.9583333333333,
     "t_start": 1981.0416666666667
   },
-  "variable": "precipitation"
+  "variable": "precipitation",
+  "verdict": {
+    "band_max_verdict": "strong",
+    "capped": false,
+    "caveats": [],
+    "checks": [
+      {
+        "name": "hamed_rao_p",
+        "status": "fail",
+        "threshold": 0.05,
+        "value": 0.17808634813572288
+      },
+      {
+        "name": "mk_seasonal_consistency",
+        "status": "pass",
+        "threshold": null,
+        "value": true
+      },
+      {
+        "name": "window_agreement",
+        "status": "pending",
+        "threshold": 0.8,
+        "value": null
+      },
+      {
+        "name": "witness_agreement",
+        "status": "pending",
+        "threshold": null,
+        "value": null
+      }
+    ],
+    "label": "inconclusive",
+    "no_trend_margin": 0.0357368533749261,
+    "reason": "The test cannot tell this trend from noise (p = 0.178), and the slope's interval, widened for autocorrelation, reaches past \u00b10.0357 per decade, so a trend that size is not ruled out."
+  }
 }

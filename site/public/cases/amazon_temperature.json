@@ -1,4 +1,7 @@
 {
+  "autocorrelation": {
+    "r1_detrended": 0.7821523045176955
+  },
   "consistency": {
     "agree": true,
     "alpha": 0.05,
@@ -94,7 +97,7 @@
     "years_covered": 45.0
   },
   "region": "amazon",
-  "schema_version": 1,
+  "schema_version": 2,
   "series": {
     "anomaly": [
       -0.7505411931962804,
@@ -2835,5 +2838,39 @@
     "t_end": 2025.9583333333333,
     "t_start": 1981.0416666666667
   },
-  "variable": "temperature"
+  "variable": "temperature",
+  "verdict": {
+    "band_max_verdict": "moderate",
+    "capped": false,
+    "caveats": [],
+    "checks": [
+      {
+        "name": "hamed_rao_p",
+        "status": "pass",
+        "threshold": 0.01,
+        "value": 1.2829910156497704e-07
+      },
+      {
+        "name": "mk_seasonal_consistency",
+        "status": "pass",
+        "threshold": null,
+        "value": true
+      },
+      {
+        "name": "window_agreement",
+        "status": "pending",
+        "threshold": 0.8,
+        "value": null
+      },
+      {
+        "name": "witness_agreement",
+        "status": "pending",
+        "threshold": null,
+        "value": null
+      }
+    ],
+    "label": "moderate",
+    "no_trend_margin": 0.1,
+    "reason": "The trend is significant (p < 1e-6), but this record is too autocorrelated for more than Moderate."
+  }
 }
