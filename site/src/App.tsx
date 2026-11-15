@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { loadCase, loadIndex, type CaseFile, type IndexCase, type IndexFile } from "./data";
 import Evidence from "./Evidence";
+import VerdictCard from "./Verdict";
+import { announcement } from "./verdict";
 
 type Status<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; value: T };
 
@@ -32,6 +34,8 @@ export default function App() {
     };
   }, [selected]);
 
+  const variableName = (id: string) =>
+    (index.state === "ready" ? index.value.variables.find((v) => v.id === id)?.name : undefined) ?? id.replace(/_/g, " ");
   const accessed = index.state === "ready" ? index.value.build.accessed.join(", ") : null;
 
   return (
@@ -67,7 +71,11 @@ export default function App() {
 
         <section className="panel" aria-labelledby="verdict-h">
           <h2 id="verdict-h">The verdict</h2>
-          {caseFile?.state === "ready" ? <VerdictSlot c={caseFile.value} /> : <p className="muted">No case on the stand yet.</p>}
+          {/* Stays mounted across case changes so screen readers announce each new label. */}
+          <p className="sr-only" aria-live="polite" aria-atomic="true">
+            {caseFile?.state === "ready" ? announcement(caseFile.value, variableName(caseFile.value.variable)) : ""}
+          </p>
+          {caseFile?.state === "ready" ? <VerdictCard c={caseFile.value} /> : <p className="muted">No case on the stand yet.</p>}
         </section>
       </div>
 
@@ -104,24 +112,5 @@ function CaseList({ index, selected, onSelect }: { index: IndexFile; selected: I
         </button>
       ))}
     </div>
-  );
-}
-
-/** Placeholder verdict slot. Replaced by the verdict card (#25). */
-function VerdictSlot({ c }: { c: CaseFile }) {
-  if (!c.quality.passed) {
-    return (
-      <p>
-        <span className="pill p-insufficient">Insufficient record</span> {c.quality.reason}
-      </p>
-    );
-  }
-  if (!c.verdict) {
-    return <p className="muted">The verdict card arrives with the verdict module (#20) and card (#25).</p>;
-  }
-  return (
-    <p>
-      <span className="pill">{c.verdict.label.replace(/_/g, " ")}</span> {c.verdict.reason}
-    </p>
   );
 }
