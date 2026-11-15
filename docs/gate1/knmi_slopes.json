@@ -1,0 +1,72 @@
+{
+  "_note": "Filled in by hand from KNMI Climate Explorer; see docs/gate1.md section (c). slope: every digit KNMI displays, unrounded. units: per_year or per_decade. resolution: place value of the last displayed digit of slope, same units (e.g. 0.001 if KNMI shows 0.034). stderr in the same units, null if KNMI shows none. knmi_settings: every KNMI menu choice, verbatim. evidence: path of the saved KNMI page or screenshot under docs/gate1/.",
+  "tolerance": 0.01,
+  "cases": {
+    "mexicali": {
+      "monthly": {
+        "slope": null,
+        "units": "per_year",
+        "resolution": null,
+        "stderr": null,
+        "knmi_settings": null,
+        "url": null,
+        "accessed_utc": null,
+        "evidence": null
+      },
+      "annual": {
+        "slope": null,
+        "units": "per_year",
+        "resolution": null,
+        "stderr": null,
+        "knmi_settings": null,
+        "url": null,
+        "accessed_utc": null,
+        "evidence": null
+      }
+    },
+    "iberia": {
+      "monthly": {
+        "slope": null,
+        "units": "per_year",
+        "resolution": null,
+        "stderr": null,
+        "knmi_settings": null,
+        "url": null,
+        "accessed_utc": null,
+        "evidence": null
+      },
+      "annual": {
+        "slope": null,
+        "units": "per_year",
+        "resolution": null,
+        "stderr": null,
+        "knmi_settings": null,
+        "url": null,
+        "accessed_utc": null,
+        "evidence": null
+      }
+    },
+    "amazon": {
+      "monthly": {
+        "slope": null,
+        "units": "per_year",
+        "resolution": null,
+        "stderr": null,
+        "knmi_settings": null,
+        "url": null,
+        "accessed_utc": null,
+        "evidence": null
+      },
+      "annual": {
+        "slope": null,
+        "units": "per_year",
+        "resolution": null,
+        "stderr": null,
+        "knmi_settings": null,
+        "url": null,
+        "accessed_utc": null,
+        "evidence": null
+      }
+    }
+  }
+}
