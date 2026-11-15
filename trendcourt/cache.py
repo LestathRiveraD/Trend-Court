@@ -151,13 +151,31 @@ def build(commit: str) -> dict[str, str]:
     return files
 
 
-def write(files: dict[str, str], out_dir: Path = OUT_DIR) -> list[str]:
-    """Write ``files`` into ``out_dir`` and delete any other ``*.json`` there,
-    so a case dropped from ``data/regions.json`` does not linger. Returns the
-    names of the deleted files. Text is written as UTF-8 with ``\\n`` line
-    endings on every platform."""
+def _owned(name: str, variables) -> bool:
+    """Whether ``name`` is a file the build writes: ``index.json`` or a case
+    file ``<region>_<variable>.json`` for one of ``variables``."""
+    if name == "index.json":
+        return True
+    pattern = "|".join(re.escape(v) for v in variables)
+    return re.fullmatch(rf"[a-z0-9_]+_({pattern})\.json", name) is not None
+
+
+def write(files: dict[str, str], out_dir: Path = OUT_DIR, variables=None) -> list[str]:
+    """Write ``files`` into ``out_dir`` and delete any other case file there,
+    so a case dropped from ``data/regions.json`` does not linger. Only files
+    the build owns are deleted: ``<region>_<variable>.json`` for a variable in
+    ``variables`` (default: those in ``data/regions.json``). Any other file,
+    ``*.json`` or not, is left alone, so ``--out`` cannot destroy unrelated
+    files. Returns the names of the deleted files. Text is written as UTF-8
+    with ``\\n`` line endings on every platform."""
+    if variables is None:
+        variables = list(clerk.load_regions()["variables"])
     out_dir.mkdir(parents=True, exist_ok=True)
-    stale = sorted(p.name for p in out_dir.glob("*.json") if p.name not in files)
+    stale = sorted(
+        p.name
+        for p in out_dir.glob("*.json")
+        if p.name not in files and _owned(p.name, variables)
+    )
     for name in stale:
         (out_dir / name).unlink()
     for name, text in files.items():

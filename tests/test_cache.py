@@ -89,12 +89,30 @@ def test_failed_quality_case_is_still_written(monkeypatch):
     assert json.loads(files["sahel_precipitation.json"])["theil_sen"] is None
 
 
-def test_write_removes_stale_json_only(tmp_path):
-    (tmp_path / "old_case.json").write_text("{}")
+def test_write_removes_stale_cases_only(tmp_path):
+    for name in ("dropped_temperature.json", "dropped_soil_moisture.json",
+                 "regions.json", "package.json", "old_case.json"):
+        (tmp_path / name).write_text("{}")
     (tmp_path / "keep.txt").write_text("x")
-    stale = cache.write({"index.json": "{}\n"}, tmp_path)
-    assert stale == ["old_case.json"]
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["index.json", "keep.txt"]
+    files = {"index.json": "{}\n", "mexicali_temperature.json": "{}\n"}
+    stale = cache.write(files, tmp_path)
+    assert stale == ["dropped_soil_moisture.json", "dropped_temperature.json"]
+    assert sorted(p.name for p in tmp_path.iterdir()) == [
+        "index.json", "keep.txt", "mexicali_temperature.json", "old_case.json",
+        "package.json", "regions.json",
+    ]
+
+
+def test_script_out_dir_keeps_unrelated_json(monkeypatch, tmp_path):
+    monkeypatch.syspath_prepend(str(REPO / "scripts"))
+    import build_cache
+
+    monkeypatch.setattr(cache, "source_commit", lambda allow_dirty=False: "test")
+    monkeypatch.setattr(cache, "build", lambda commit: {"index.json": "{}\n"})
+    (tmp_path / "regions.json").write_text("{}")
+    (tmp_path / "gone_precipitation.json").write_text("{}")
+    assert build_cache.main(["--out", str(tmp_path)]) == 0
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["index.json", "regions.json"]
 
 
 def test_schema_versions_match_the_site():
@@ -120,15 +138,25 @@ def test_committed_files_parse_with_current_schema():
             assert raw.decode() == case_module.to_json(data), f"{name} is not canonical"
 
 
-def _inputs_dirty() -> bool:
+def _git_skip_reason(allow_dirty: bool = False) -> str | None:
+    """Why :func:`cache.source_commit` cannot run here, or ``None``. Called at
+    import time, so it must not raise: a shallow clone (the default for
+    ``actions/checkout``) or a tree without git would otherwise abort
+    collection of every test in this module."""
     try:
-        cache.source_commit()
+        cache.source_commit(allow_dirty=allow_dirty)
     except cache.DirtyInputsError:
-        return True
-    return False
+        return "build inputs have uncommitted changes"
+    except (RuntimeError, OSError, subprocess.CalledProcessError) as err:
+        return f"no usable git history: {str(err).splitlines()[0]}"
+    return None
 
 
-@pytest.mark.skipif(_inputs_dirty(), reason="build inputs have uncommitted changes")
+_SKIP_CLEAN = _git_skip_reason()
+_SKIP_ANY = _git_skip_reason(allow_dirty=True)
+
+
+@pytest.mark.skipif(_SKIP_CLEAN is not None, reason=_SKIP_CLEAN or "")
 def test_committed_cache_is_current(built):
     """The committed cache is what a rebuild at this commit writes. If this
     fails, run ``python scripts/build_cache.py`` and commit site/public/cases."""
@@ -142,6 +170,7 @@ def test_committed_cache_is_current(built):
     assert not stale, f"stale cache files: {stale}; rerun scripts/build_cache.py"
 
 
+@pytest.mark.skipif(_SKIP_ANY is not None, reason=_SKIP_ANY or "")
 def test_source_commit_is_last_input_commit():
     commit = cache.source_commit(allow_dirty=True)
     expected = subprocess.run(
