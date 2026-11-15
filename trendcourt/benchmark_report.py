@@ -1,11 +1,13 @@
 """Figures and tables for ``docs/benchmark.md``, from the committed benchmark JSON.
 
 Nothing here reruns the simulation: every number comes from
-``docs/benchmark/{fpr,coverage,power}.json`` (written by
+``docs/benchmark/{fpr,coverage,power,applied,noise}.json`` (written by
 ``scripts/benchmark.py --experiment ...``) and
 ``trendcourt/thresholds.json``, except the no-trend columns of Table 6,
 which read the committed real-case records in ``data/`` through
-``clerk.prepare`` (:func:`real_case_no_trend`). Regenerate with::
+``clerk.prepare`` (:func:`real_case_no_trend`), and the lag-3 truncation
+column of Table 1, which is a closed-form calculation
+(:func:`hamed_rao_truncation_ratio`). Regenerate with::
 
     python scripts/benchmark.py --figures
 
@@ -17,8 +19,10 @@ between :data:`TABLES_START` and :data:`TABLES_END` in
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
+import numpy as np
 from scipy.stats import norm
 
 from trendcourt import thresholds
@@ -34,10 +38,13 @@ VARIABLE_COLORS = {"temperature": "#d95f02", "precipitation": "#1b9e77", "soil_m
 NOMINAL_Z = norm.ppf(0.975)
 
 
+EXPERIMENTS = ("fpr", "coverage", "power", "applied", "noise")
+
+
 def load_results(bench_dir: Path = BENCH_DIR) -> dict:
-    """The three committed experiment results, keyed ``fpr``, ``coverage``, ``power``."""
+    """The committed experiment results, keyed by :data:`EXPERIMENTS`."""
     return {k: json.loads((bench_dir / f"{k}.json").read_text(encoding="utf-8"))
-            for k in ("fpr", "coverage", "power")}
+            for k in EXPERIMENTS}
 
 
 def real_case_ranges(fpr: dict, key: str = "r1_detrended") -> dict[str, tuple[float, float]]:
@@ -64,6 +71,51 @@ def implied_widening(coverage: float, z: float = NOMINAL_Z) -> float:
 def _pooled_coverage(cov: dict, phi: float) -> float:
     cells = [c for c in cov["cells"] if c["phi"] == phi]
     return sum(c["coverage"]["k"] for c in cells) / sum(c["coverage"]["n"] for c in cells)
+
+
+def pooled_widened_coverage(cov: dict, phi: float, n_years: int) -> dict:
+    """Widened coverage (``r1`` estimated per replicate) at one ``phi`` and
+    record length, pooled over the injected slopes, with an exact interval."""
+    from trendcourt.benchmark import proportion_summary
+
+    cells = [c for c in cov["cells"] if c["phi"] == phi and c["n_years"] == n_years]
+    return proportion_summary(sum(c["widened_coverage"]["k"] for c in cells),
+                              sum(c["widened_coverage"]["n"] for c in cells))
+
+
+def hamed_rao_truncation_ratio(phi: float, n: int, lag: int = 3, z: float = NOMINAL_Z) -> float:
+    """Var(S) as the Hamed–Rao correction with ``lag`` lags computes it, over
+    Var(S) with every lag, for Gaussian AR(1) noise of coefficient ``phi``.
+
+    Closed form, no simulation. The rank autocorrelation at lag ``k`` is
+    ``(6 / pi) * asin(phi**k / 2)``; the correction is
+    ``1 + 2 / (n (n-1) (n-2)) * sum_k (n-k)(n-k-1)(n-k-2) rho_k``, over all
+    ``k`` for the true variance and, for the truncated one, over ``k <=
+    lag`` with ``|rho_k| > z / sqrt(n)`` (the significance filter
+    ``pymannkendall`` applies). A ratio below 1 means the test's variance
+    is too small, so it rejects too often.
+    """
+    k = np.arange(1, n)
+    rho = (6.0 / math.pi) * np.arcsin(phi ** k / 2.0)
+    w = (n - k) * (n - k - 1) * (n - k - 2) * rho
+    c = 2.0 / (n * (n - 1) * (n - 2))
+    keep = (k <= lag) & (np.abs(rho) > z / math.sqrt(n))
+    return float((1.0 + c * w[keep].sum()) / (1.0 + c * w.sum()))
+
+
+def truncation_predicted_fpr(phi: float, n: int, alpha: float, lag: int = 3) -> float:
+    """Rejection rate on trend-free AR(1) noise that the lag-``lag`` truncation
+    alone predicts: ``2 * (1 - Phi(z_alpha * sqrt(ratio)))`` with ``ratio``
+    from :func:`hamed_rao_truncation_ratio`."""
+    za = norm.ppf(1.0 - alpha / 2.0)
+    return float(2.0 * norm.sf(za * math.sqrt(hamed_rao_truncation_ratio(phi, n, lag))))
+
+
+def operative_cutoff(phi: float, th: dict) -> float | None:
+    """The p-value cut-off the verdict uses for a record whose ``r1`` is
+    ``phi``: the band's Moderate cut-off, or ``None`` (no claim)."""
+    b = thresholds.band_for(phi, th)
+    return None if b is None or b["max_verdict"] == "inconclusive" else b["moderate_alpha"]
 
 
 # --------------------------------------------------------------------------
@@ -133,6 +185,10 @@ def figure_coverage(cov: dict, path: Path) -> None:
             ax.plot([c["phi"] for c in cells], [c["coverage"]["rate"] for c in cells], ls=ls,
                     marker="o", ms=3, lw=1.1, color=colors[i],
                     label=f"{n} years, slope {slope:g} SD/decade")
+    for i, n in enumerate(cov["grid"]["n_years"]):
+        w = [pooled_widened_coverage(cov, phi, n)["rate"] for phi in phis]
+        ax.plot(phis, w, ls="-", marker="s", ms=3, lw=1.6, color=colors[i], alpha=0.6,
+                label=f"{n} years, widened with estimated r1")
     fine = [p / 100 for p in range(0, 91)]
     ax.plot(fine, [ar1_predicted_coverage(p) for p in fine], color="black", lw=2, alpha=0.35,
             label="predicted if the width ignores AR(1)")
@@ -147,8 +203,13 @@ def figure_coverage(cov: dict, path: Path) -> None:
     plt.close(fig)
 
 
-def figure_power(power: dict, fpr: dict, path: Path, alpha: float = 0.05) -> None:
-    """Hamed–Rao power against record length, one line per slope, one panel per phi."""
+def figure_power(power: dict, fpr: dict, path: Path, alpha: float = 0.05, th: dict | None = None) -> None:
+    """Hamed–Rao power against record length, one line per slope, one panel per phi.
+
+    The panel title gives the cut-off the verdict actually uses at that
+    ``phi`` (:func:`operative_cutoff`); the curves are at ``alpha``.
+    """
+    th = thresholds.load() if th is None else th
     plt = _plt()
     phis = power["grid"]["phi"]
     fig, axes = plt.subplots(1, len(phis), figsize=(2.3 * len(phis), 3.4), sharey=True)
@@ -165,14 +226,15 @@ def figure_power(power: dict, fpr: dict, path: Path, alpha: float = 0.05) -> Non
         floor = thresholds.worst_fpr(fpr, phi, alpha)["rate"] if phi in fpr["grid"]["phi"] else None
         if floor is not None:
             ax.axhline(floor, ls=":", color="black", lw=1, label="rate on trend-free series")
-        ax.set_title(f"phi = {phi:g}")
+        cut = operative_cutoff(phi, th)
+        ax.set_title(f"phi = {phi:g}\nverdict: " + ("no claim" if cut is None else f"p < {cut:g}"))
         ax.set_xlabel("record length (years)")
         ax.set_ylim(0, 1.02)
     axes[0].set_ylabel(f"rejection rate at alpha = {alpha:g}")
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=5, frameon=False, bbox_to_anchor=(0.5, -0.1))
     fig.suptitle(f"Hamed–Rao power by record length, slope in noise SDs per decade "
-                 f"({power['replicates']} replicates per point)", y=1.02)
+                 f"({power['replicates']} replicates per point)", y=1.08)
     _save(fig, path)
     plt.close(fig)
 
@@ -181,7 +243,7 @@ def write_figures(results: dict, out_dir: Path = BENCH_DIR) -> list[Path]:
     paths = {k: out_dir / v for k, v in FIGURES.items()}
     figure_fpr(results["fpr"], paths["fpr"])
     figure_coverage(results["coverage"], paths["coverage"])
-    figure_power(results["power"], results["fpr"], paths["power"])
+    figure_power(results["power"], results["fpr"], paths["power"], th=thresholds.load())
     return list(paths.values())
 
 
@@ -204,10 +266,15 @@ def table_fpr(fpr: dict) -> str:
     rows = []
     for c in sorted(fpr["cells"], key=lambda c: (c["phi"], c["n_years"])):
         r = c["rates"]
+        n = 12 * c["n_years"]
         rows.append([f"{c['phi']:g}", str(c["n_years"]),
                      _ci(r["hamed_rao"]["0.05"]), _ci(r["hamed_rao"]["0.01"]),
+                     f"{hamed_rao_truncation_ratio(c['phi'], n):.2f}",
+                     f"{truncation_predicted_fpr(c['phi'], n, 0.05):.3f} / "
+                     f"{truncation_predicted_fpr(c['phi'], n, 0.01):.3f}",
                      _ci(r["seasonal"]["0.05"]), _ci(r["seasonal"]["0.01"]), str(c["n_failed"])])
     return _table(["phi", "years", "Hamed–Rao @0.05", "Hamed–Rao @0.01",
+                   "lag-3 variance ratio", "predicted by lag-3 truncation @0.05 / @0.01",
                    "seasonal MK @0.05", "seasonal MK @0.01", "failed"], rows)
 
 
@@ -224,26 +291,40 @@ def table_coverage(cov: dict) -> str:
 
 
 def table_widening(cov: dict) -> str:
+    years = cov["grid"]["n_years"]
     rows = []
     for phi in cov["grid"]["phi"]:
         c = _pooled_coverage(cov, phi)
         rows.append([f"{phi:g}", f"{c:.3f}", f"{ar1_predicted_coverage(phi):.3f}",
-                     f"{implied_widening(c):.2f}", f"{thresholds.widening_factor(phi):.2f}"])
-    return _table(["phi", "coverage (all slopes and lengths)", "predicted by AR(1)",
-                   "widening needed for 95%", "AR(1) factor sqrt((1+phi)/(1-phi))"], rows)
+                     f"{implied_widening(c):.2f}", f"{thresholds.widening_factor(phi):.2f}"]
+                    + [_ci(pooled_widened_coverage(cov, phi, n)) for n in years])
+    return _table(["phi", "raw coverage (all slopes and lengths)", "predicted by AR(1)",
+                   "widening needed for 95%", "AR(1) factor sqrt((1+phi)/(1-phi))"]
+                  + [f"widened coverage, estimated r1, {n} yrs" for n in years], rows)
 
 
-def table_power(power: dict) -> str:
+def table_power(power: dict, th: dict) -> str:
     years = power["grid"]["n_years"]
     rows = []
     for phi in power["grid"]["phi"]:
+        cut = operative_cutoff(phi, th)
         for slope in power["grid"]["slope_per_decade"]:
             cells = {c["n_years"]: c for c in power["cells"]
                      if c["phi"] == phi and c["slope_per_decade"] == slope}
-            rows.append([f"{phi:g}", f"{slope:g}"] + [
-                f"{cells[n]['rates']['0.05']['rejection']['rate']:.2f} / "
-                f"{cells[n]['rates']['0.01']['rejection']['rate']:.2f}" for n in years])
-    return _table(["phi", "slope (SD/decade)"] + [f"{n} yrs" for n in years], rows)
+            rows.append([f"{phi:g}", "no claim" if cut is None else f"p < {cut:g}", f"{slope:g}"] + [
+                _power_cell(cells[n], cut) for n in years])
+    return _table(["phi", "verdict cut-off", "slope (SD/decade)"] + [f"{n} yrs" for n in years], rows)
+
+
+def _power_cell(cell: dict, cut: float | None) -> str:
+    """``rate@0.05 / rate@0.01``, the one the verdict uses in bold; both struck
+    through (not usable) where the verdict makes no claim."""
+    vals = {a: f"{cell['rates'][a]['rejection']['rate']:.2f}" for a in ("0.05", "0.01")}
+    if cut is None:
+        return f"~~{vals['0.05']} / {vals['0.01']}~~"
+    key = f"{cut:g}"
+    vals[key] = f"**{vals[key]}**"
+    return f"{vals['0.05']} / {vals['0.01']}"
 
 
 def table_bands(th: dict) -> str:
@@ -274,7 +355,10 @@ def real_case_no_trend(fpr: dict, th: dict) -> dict[tuple[str, str], dict]:
       exactly 0 the widened interval would be ``[-half_width, +half_width]``
       at most, so "no trend" is **reachable** at all only when
       ``half_width <= margin``.
-    * ``margin``: ``no_trend_margin`` for the variable.
+    * ``margin``: :func:`trendcourt.thresholds.no_trend_margin` for the
+      variable; for precipitation, relative to the case's regional mean
+      (:func:`trendcourt.thresholds.regional_mean` of its climatology).
+    * ``regional_mean``: that mean, in the variable's units.
     * ``hr_p``: Hamed–Rao p-value.
     * ``reachable``: ``band_for(r1)`` is not ``None`` and ``half_width <= margin``.
     * ``allowed``: :func:`trendcourt.thresholds.no_trend_allowed` on the
@@ -293,11 +377,13 @@ def real_case_no_trend(fpr: dict, th: dict) -> dict[tuple[str, str], dict]:
         s, lo, hi = ts.slope_per_decade, ts.low_slope_per_decade, ts.high_slope_per_decade
         f = thresholds.widening_factor(r1d)
         half = f * max(s - lo, hi - s)
-        margin = th["no_trend_margin"][row["variable"]]
+        mean = thresholds.regional_mean(prepared.climatology)
+        margin = thresholds.no_trend_margin(row["variable"], th, regional_mean=mean)
         out[(row["region"], row["variable"])] = {
-            "half_width": half, "margin": margin, "hr_p": hr.p,
+            "half_width": half, "margin": margin, "regional_mean": mean, "hr_p": hr.p,
             "reachable": thresholds.band_for(r1d, th) is not None and half <= margin,
-            "allowed": thresholds.no_trend_allowed(row["variable"], s, lo, hi, r1d, hr.p, th),
+            "allowed": thresholds.no_trend_allowed(row["variable"], s, lo, hi, r1d, hr.p, th,
+                                                   regional_mean=mean),
         }
     return out
 
@@ -317,37 +403,89 @@ def table_real_cases(fpr: dict, th: dict) -> str:
         rows.append([row["region"], row["variable"].replace("_", " "), f"{row['r1']:.2f}",
                      "n/a" if r1d is None else f"{r1d:.2f}", band_txt, cap, mod,
                      "n/a" if r1d is None else f"{thresholds.widening_factor(r1d):.2f}"]
-                    + _no_trend_cells(no_trend.get((row["region"], row["variable"]))))
+                    + _no_trend_cells(no_trend.get((row["region"], row["variable"])))
+                    + [", ".join(thresholds.noise_caveat(row["region"], row["variable"], th)) or "–"])
     return _table(["region", "variable", "r1", "r1 detrended", "band", "verdict cap",
                    "Moderate needs p <", "interval widening", "widened half-width",
-                   "no-trend margin", "Hamed–Rao p", "no trend reachable", "no trend allowed"], rows)
+                   "no-trend margin", "Hamed–Rao p", "no trend reachable", "no trend allowed",
+                   "noise caveat"], rows)
 
 
 def _no_trend_cells(nt: dict | None) -> list[str]:
     if nt is None:
         return ["n/a"] * 5
-    return [f"{nt['half_width']:.3g}", f"{nt['margin']:g}", "< 0.001" if nt["hr_p"] < 0.001 else f"{nt['hr_p']:.3f}",
+    return [f"{nt['half_width']:.3g}", f"{nt['margin']:.3g}", "< 0.001" if nt["hr_p"] < 0.001 else f"{nt['hr_p']:.3f}",
             "yes" if nt["reachable"] else "no", "yes" if nt["allowed"] else "no"]
+
+
+def table_applied(applied: dict) -> str:
+    rows = []
+    for c in sorted(applied["cells"], key=lambda c: (c["phi"], c["n_years"])):
+        rows.append([f"{c['phi']:g}", str(c["n_years"]),
+                     f"{c['r1_detrended_mean']:.3f} ({c['r1_detrended_bias']:+.3f})",
+                     f"{c['r1_detrended_sd']:.3f}",
+                     f"{c['band_shares']['outside']:.2f}",
+                     _ci(c["false_claim"]), _ci(c["false_strong"]),
+                     _ci(c["widened_coverage"]),
+                     f"{c['widened_coverage_true_phi']['rate']:.3f}",
+                     f"{c['widening_factor_mean']:.2f} ({c['widening_factor_true_phi']:.2f})",
+                     str(c["n_failed"])])
+    return _table(["true phi", "years", "mean r1 detrended (bias)", "SD of r1", "share above the grid",
+                   "false significance claims", "false Strong claims",
+                   "widened coverage, estimated r1", "widened coverage, true phi",
+                   "mean factor (at true phi)", "failed"], rows)
+
+
+def table_noise(noise: dict, th: dict) -> str:
+    lags = [k for k in noise["acf_lags"] if k != 1]
+    rows = []
+    for c in noise["cases"]:
+        stated = c["stated_fpr"]
+        cut = None if c["max_verdict"] == "inconclusive" else c["moderate_alpha"]
+        rows.append([c["region"], c["variable"].replace("_", " "), f"{c['r1_detrended']:.2f}"]
+                    + [f"{c['acf'][str(k)]:.2f} ({c['acf_ar1'][str(k)]:.2f})" for k in lags]
+                    + [f"{c['vif_bartlett']:.1f} / {c['vif_bartlett_ar1']:.1f}",
+                       f"{c['ar_order']}",
+                       f"{c['ar_widening']:.2f} / {c['ar1_widening']:.2f}",
+                       "no claim" if cut is None else f"{stated[f'{cut:g}']:.3f} @{cut:g}",
+                       _ci(c["false_claim"]),
+                       f"{c['fpr']['0.01']['rate']:.3f} ({stated['0.01']:.3f})" if stated else "n/a",
+                       _ci(c["widened_coverage"]),
+                       ", ".join(thresholds.noise_caveat(c["region"], c["variable"], th)) or "–"])
+    return _table(["region", "variable", "r1"] + [f"ACF lag {k} (AR(1))" for k in lags]
+                  + ["variance inflation, observed / AR(1)", "AR order", "widening AR(p) / AR(1)",
+                     "stated FPR", "false claims under own noise", "FPR @0.01 (stated)",
+                     "widened coverage under own noise", "caveat"], rows)
 
 
 def tables_markdown(results: dict, th: dict) -> str:
     fpr, cov, power = results["fpr"], results["coverage"], results["power"]
+    applied, noise = results["applied"], results["noise"]
     parts = [
         "### Table 1. False-positive rate on trend-free series",
         "Rejection rate with its exact 95% binomial interval, "
-        f"{fpr['replicates']} replicates per row.",
+        f"{fpr['replicates']} replicates per row. The two middle columns are a closed-form "
+        "calculation, not simulated: the ratio of the variance the Hamed–Rao correction computes "
+        "with only 3 lags (after its significance filter) to the variance with every lag, for "
+        "AR(1) noise, and the rejection rate that ratio alone predicts.",
         table_fpr(fpr),
         "### Table 2. Theil–Sen 95% interval coverage",
         f"Share of {cov['replicates']} intervals per cell that contain the injected slope "
         "(slopes in noise SDs per decade).",
         table_coverage(cov),
-        "### Table 3. Why coverage falls: the interval ignores autocorrelation",
-        "Coverage pooled over slopes and record lengths, the coverage an interval would have "
-        "if its width ignored AR(1) noise, and the widening that brings it back to 95%.",
+        "### Table 3. Why coverage falls, and the widened interval as applied",
+        "Raw coverage pooled over slopes and record lengths, the coverage an interval would have "
+        "if its width ignored AR(1) noise, and the widening that brings it back to 95%. The last "
+        "columns are simulated: the coverage of the interval widened as the no-trend rule widens "
+        "it, with `r1` estimated from each replicate (not the true phi), pooled over the three "
+        f"slopes ({3 * cov['replicates']} replicates per cell, exact 95% interval).",
         table_widening(cov),
         "### Table 4. Hamed–Rao power",
-        f"Rejection rate at alpha 0.05 / 0.01, {power['replicates']} replicates per cell.",
-        table_power(power),
+        f"Rejection rate at alpha 0.05 / 0.01, {power['replicates']} replicates per cell. "
+        "Verdict cut-off: the p-value cut-off the verdict uses for a record with `r1` equal to "
+        "phi (Table 5); the rate at that cut-off is in bold. At phi = 0.9 the verdict makes no "
+        "significance claim, so neither rate is usable power (struck through).",
+        table_power(power, th),
         "### Table 5. Autocorrelation bands and verdict caps (`trendcourt/thresholds.json`)",
         "FPR is the worst case over 20, 30 and 45 years at the band's benchmark phi.",
         table_bands(th),
@@ -362,6 +500,26 @@ def tables_markdown(results: dict, th: dict) -> str:
         "inside the benchmark). Allowed: `thresholds.no_trend_allowed` on the case's slope, "
         "interval, `r1` and p.",
         table_real_cases(fpr, th),
+        "### Table 7. The policy as applied, on trend-free AR(1) series",
+        f"{applied['replicates']} trend-free replicates per row (`docs/benchmark/applied.json`). "
+        "Each replicate is put in a band by its own `r1 detrended`, as a real record is, and "
+        "gets the significance claim its band allows (`thresholds.significance_claim`). "
+        "False significance claims: any Moderate or Strong claim. False Strong claims: p < "
+        "alpha_strong in a band that allows Strong (before the Phase 3 window and witness "
+        "checks, which only remove claims). Widened coverage: the Theil–Sen interval widened "
+        "with the replicate's own `r1` contains the true slope 0. Rates with exact 95% intervals.",
+        table_applied(applied),
+        "### Table 8. Does AR(1) describe the real noise?",
+        "Per case (`docs/benchmark/noise.json`): the autocorrelation of the Theil–Sen-detrended "
+        "anomalies at lags 2, 3, 6 and 12, with the AR(1) value `r1^k` in brackets; the "
+        f"Bartlett-weighted variance inflation over {noise['vif_lags']} lags, observed and for "
+        "AR(1) with the same weights; and an AR(p) model (order by AIC) fitted to the residuals "
+        "divided by their calendar-month SD, with the widening it calls for next to the AR(1) "
+        f"factor the rule applies. {noise['replicates']} trend-free records simulated from each "
+        "case's own model then go through the policy as in Table 7: false significance claims, "
+        "the FPR at 0.01 (the band's stated rate in brackets) and the widened interval's "
+        "coverage. Caveat: `noise_caveats` in `thresholds.json` (rule: `noise_model_check`).",
+        table_noise(noise, th),
     ]
     return "\n\n".join(parts)
 
@@ -389,8 +547,25 @@ def check_bands_current(results: dict, th: dict) -> None:
                          "rewrite them from thresholds.derive_bands before regenerating the tables")
 
 
+def check_policy_results_current(results: dict, th: dict) -> None:
+    """Raise if ``applied.json`` or ``noise.json`` were run with other thresholds,
+    or if ``noise_caveats`` in ``thresholds.json`` are not what
+    ``derive_noise_caveats`` gives on ``noise.json``."""
+    from trendcourt.benchmark import _thresholds_used
+
+    used = json.loads(json.dumps(_thresholds_used(th)))
+    for key in ("applied", "noise"):
+        if results[key]["thresholds_used"] != used:
+            raise ValueError(f"docs/benchmark/{key}.json was run with other thresholds than "
+                             f"thresholds.json; rerun scripts/benchmark.py --experiment {key}")
+    if th["noise_caveats"] != thresholds.derive_noise_caveats(results["noise"], th):
+        raise ValueError("thresholds.json noise_caveats differ from derive_noise_caveats(noise.json); "
+                         "rewrite them before regenerating the tables")
+
+
 def update_doc(results: dict, th: dict, doc_path: Path = DOC_PATH) -> Path:
     check_bands_current(results, th)
+    check_policy_results_current(results, th)
     doc = doc_path.read_text(encoding="utf-8")
     doc_path.write_text(replace_tables(doc, tables_markdown(results, th)), encoding="utf-8")
     return doc_path

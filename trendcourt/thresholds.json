@@ -1,18 +1,23 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "source": "docs/benchmark.md",
   "alpha_strong": 0.01,
   "alpha_moderate": 0.05,
   "window_agreement_strong": 0.8,
   "no_trend_margin": {
     "temperature": 0.1,
-    "precipitation": 0.05,
+    "precipitation": {
+      "relative_to_mean": 0.03
+    },
     "soil_moisture": 0.005
   },
   "no_trend_margin_units": {
     "temperature": "degC/decade",
     "precipitation": "mm/day/decade",
     "soil_moisture": "fraction/decade"
+  },
+  "no_trend_margin_formula": {
+    "precipitation": "relative_to_mean * regional mean, in mm/day/decade; the regional mean is the mean of the case's 12 calendar-month climatology values (clerk.prepare(...).climatology, base period: the record itself), in mm/day (thresholds.regional_mean, thresholds.no_trend_margin)"
   },
   "interval_widening": {
     "method": "ar1",
@@ -126,6 +131,43 @@
           "n_years": 45
         }
       }
+    }
+  ],
+  "noise_model_check": {
+    "source": "docs/benchmark/noise.json",
+    "min_widened_coverage": 0.93,
+    "fpr_rule": "fpr_optimistic when the lower end of the exact 95% interval of the simulated false-claim rate exceeds the band's stated rate at its Moderate cut-off, or that of the false-Strong rate exceeds the stated rate at alpha_strong (Strong bands)",
+    "card_text": "This record varies on multi-year time scales more than the noise model behind the benchmark assumes, so the stated false-positive rate and interval are optimistic."
+  },
+  "noise_caveats": [
+    {
+      "region": "mexico_city",
+      "variable": "temperature",
+      "flags": [
+        "fpr_optimistic",
+        "interval_optimistic"
+      ]
+    },
+    {
+      "region": "yucatan",
+      "variable": "temperature",
+      "flags": [
+        "interval_optimistic"
+      ]
+    },
+    {
+      "region": "yucatan",
+      "variable": "precipitation",
+      "flags": [
+        "interval_optimistic"
+      ]
+    },
+    {
+      "region": "amazon",
+      "variable": "precipitation",
+      "flags": [
+        "interval_optimistic"
+      ]
     }
   ]
 }

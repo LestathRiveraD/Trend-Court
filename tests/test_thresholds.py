@@ -25,7 +25,10 @@ def test_committed_thresholds_load_and_point_to_the_doc(th):
     assert (clerk.REPO_ROOT / th["source"]).is_file()
     assert th["alpha_strong"] == 0.01 and th["alpha_moderate"] == 0.05
     assert th["window_agreement_strong"] == 0.80
+    assert th["schema_version"] == thresholds.SCHEMA_VERSION == 2
     assert set(th["no_trend_margin"]) == set(clerk.load_regions()["variables"])
+    assert th["no_trend_margin"]["precipitation"] == {"relative_to_mean": 0.03}
+    assert set(th["no_trend_margin_formula"]) == {"precipitation"}
     assert th["no_trend_margin_units"] == {"temperature": "degC/decade",
                                            "precipitation": "mm/day/decade",
                                            "soil_moisture": "fraction/decade"}
@@ -116,6 +119,49 @@ def test_widened_interval_keeps_asymmetry():
     assert thresholds.widened_interval(0.1, 0.0, 0.3, 0.0) == (0.0, pytest.approx(0.3))
 
 
+def test_significance_claim_follows_the_band(th):
+    # (-1, 0.3]: Strong allowed, Moderate at 0.05
+    assert thresholds.significance_claim(0.2, 0.009, th) == "strong"
+    assert thresholds.significance_claim(0.2, 0.01, th) == "moderate"
+    assert thresholds.significance_claim(0.2, 0.049, th) == "moderate"
+    assert thresholds.significance_claim(0.2, 0.05, th) is None
+    # (0.6, 0.8]: capped at Moderate, which needs p < 0.01
+    assert thresholds.significance_claim(0.7, 0.001, th) == "moderate"
+    assert thresholds.significance_claim(0.7, 0.01, th) is None
+    assert thresholds.significance_claim(0.7, 0.03, th) is None
+    # (0.8, 0.9] and above the grid: no claim at any p
+    assert thresholds.significance_claim(0.85, 1e-9, th) is None
+    assert thresholds.significance_claim(0.95, 1e-9, th) is None
+    with pytest.raises(ValueError):
+        thresholds.significance_claim(0.2, math.nan, th)
+
+
+def test_relative_precipitation_margin(th):
+    assert thresholds.no_trend_margin("temperature", th) == 0.1
+    assert thresholds.no_trend_margin("temperature", th, regional_mean=99.0) == 0.1
+    assert thresholds.no_trend_margin("precipitation", th, regional_mean=2.0) == pytest.approx(0.06)
+    for bad in (None, 0.0, -1.0, math.nan):
+        with pytest.raises(ValueError, match="regional_mean"):
+            thresholds.no_trend_margin("precipitation", th, regional_mean=bad)
+    with pytest.raises(ValueError, match="no no_trend_margin"):
+        thresholds.no_trend_margin("wind", th)
+    # the same interval is "no trend" in a wet region and not in an arid one
+    assert thresholds.no_trend_allowed("precipitation", 0.0, -0.05, 0.05, 0.1, 0.5, th, regional_mean=6.0)
+    assert not thresholds.no_trend_allowed("precipitation", 0.0, -0.05, 0.05, 0.1, 0.5, th, regional_mean=0.4)
+    with pytest.raises(ValueError, match="regional_mean"):
+        thresholds.no_trend_allowed("precipitation", 0.0, -0.05, 0.05, 0.1, 0.5, th)
+
+
+def test_regional_mean_is_the_climatology_mean():
+    prepared = clerk.prepare("mexicali", "precipitation")
+    m = thresholds.regional_mean(prepared.climatology)
+    assert m == pytest.approx(prepared.climatology.mean())
+    assert 0.3 < m < 0.4  # mm/day, arid
+    for bad in ([1.0] * 11, [1.0] * 11 + [math.nan]):
+        with pytest.raises(ValueError):
+            thresholds.regional_mean(bad)
+
+
 def test_no_trend_needs_nonsignificance_and_widened_interval_inside_margin(th):
     # temperature margin 0.1 degC/decade
     assert thresholds.no_trend_allowed("temperature", 0.0, -0.04, 0.04, 0.3, 0.5, th)
@@ -186,6 +232,25 @@ def _broken(th, change):
     (lambda t: t["interval_widening"].update(method="block_bootstrap"),
      "interval_widening.method must be 'ar1'"),
     (lambda t: t["interval_widening"].pop("method"), "interval_widening.method must be 'ar1'"),
+    (lambda t: t.update(schema_version=1), "schema_version"),
+    (lambda t: t["no_trend_margin"].update(precipitation={"relative_to_mean": 0.0}), "relative_to_mean"),
+    (lambda t: t["no_trend_margin"].update(precipitation={"relative_to_mean": 1.5}), "relative_to_mean"),
+    (lambda t: t["no_trend_margin"].update(precipitation={"relative_to_mean": 0.03, "cap": 0.05}),
+     "relative_to_mean"),
+    (lambda t: t["no_trend_margin"].update(precipitation={"fraction": 0.03}), "relative_to_mean"),
+    (lambda t: t["no_trend_margin_formula"].pop("precipitation"), "no_trend_margin_formula"),
+    (lambda t: t["no_trend_margin_formula"].update(temperature="x"), "no_trend_margin_formula"),
+    (lambda t: t.pop("no_trend_margin_formula"), "missing"),
+    (lambda t: t.pop("noise_model_check"), "missing"),
+    (lambda t: t.pop("noise_caveats"), "missing"),
+    (lambda t: t["noise_model_check"].update(min_widened_coverage=1.2), "min_widened_coverage"),
+    (lambda t: t["noise_model_check"].update(card_text=""), "card_text"),
+    (lambda t: t.update(noise_caveats={}), "must be a list"),
+    (lambda t: t["noise_caveats"].append({"region": "x", "variable": "y"}), "exactly region"),
+    (lambda t: t["noise_caveats"].append({"region": "x", "variable": "y", "flags": []}), "subset"),
+    (lambda t: t["noise_caveats"].append({"region": "x", "variable": "y", "flags": ["bogus"]}), "subset"),
+    (lambda t: t["noise_caveats"].extend([{"region": "x", "variable": "y", "flags": ["fpr_optimistic"]}] * 2),
+     "twice"),
 ])
 def test_check_rejects_broken_files(th, tmp_path, change, match):
     path = tmp_path / "t.json"
@@ -207,6 +272,44 @@ def test_no_verdict_threshold_is_hard_coded_in_the_package():
             assert f"{name} =" not in text and f"{name}=" not in text, (path.name, name)
 
 
+# --- noise caveats -------------------------------------------------------------------
+
+
+def _noise_case(cov, claim_ci_low, strong_ci_low, cap="strong", mod=0.05):
+    return {"region": "r", "variable": "v", "max_verdict": cap, "moderate_alpha": mod,
+            "stated_fpr": {"0.05": 0.07, "0.01": 0.02},
+            "widened_coverage": {"rate": cov},
+            "false_claim": {"ci95": [claim_ci_low, 1.0]},
+            "false_strong": {"ci95": [strong_ci_low, 1.0]}}
+
+
+def test_derive_noise_caveats_rule(th):
+    rule = th["noise_model_check"]["min_widened_coverage"]
+    d = lambda c: thresholds.derive_noise_caveats({"cases": [c]}, th)
+    assert d(_noise_case(rule, 0.07, 0.02)) == []  # at the limits: no flag
+    assert d(_noise_case(rule - 0.001, 0.0, 0.0))[0]["flags"] == ["interval_optimistic"]
+    assert d(_noise_case(0.95, 0.0701, 0.0))[0]["flags"] == ["fpr_optimistic"]
+    assert d(_noise_case(0.95, 0.0, 0.0201))[0]["flags"] == ["fpr_optimistic"]
+    assert d(_noise_case(0.9, 0.08, 0.03))[0]["flags"] == ["fpr_optimistic", "interval_optimistic"]
+    # a Moderate band compares with its own cut-off and never with the Strong rate
+    assert d(_noise_case(0.95, 0.019, 0.5, cap="moderate", mod=0.01)) == []
+    assert d(_noise_case(0.95, 0.021, 0.0, cap="moderate", mod=0.01))[0]["flags"] == ["fpr_optimistic"]
+    # an Inconclusive band makes no claim, so only the interval can be flagged
+    assert d(_noise_case(0.95, 0.9, 0.9, cap="inconclusive", mod=None)) == []
+
+
+def test_committed_noise_caveats_are_derived_from_noise_json(th):
+    noise = benchmark_report.load_results()["noise"]
+    assert th["noise_caveats"] == thresholds.derive_noise_caveats(noise, th)
+    assert ("amazon", "precipitation") in {(c["region"], c["variable"]) for c in th["noise_caveats"]}
+
+
+def test_noise_caveat_lookup(th):
+    for c in th["noise_caveats"]:
+        assert thresholds.noise_caveat(c["region"], c["variable"], th) == c["flags"]
+    assert thresholds.noise_caveat("nowhere", "temperature", th) == []
+
+
 # --- report: figures and tables ---------------------------------------------------
 
 
@@ -219,23 +322,30 @@ def test_committed_doc_tables_match_the_json(th):
 
 
 def test_real_case_no_trend_columns(th, fpr):
-    """Table 6's no-trend columns, from the committed records: "no trend" is
-    unreachable for 10 of 18 cases and allowed for none (docs/benchmark.md,
-    the no_trend_margin decision)."""
+    """Table 6's no-trend columns, from the committed records: with the relative
+    precipitation margin, "no trend" is unreachable for 9 of 18 cases and
+    allowed only for Mexico City precipitation (docs/benchmark.md, the
+    no_trend_margin decision)."""
     nt = benchmark_report.real_case_no_trend(fpr, th)
     assert len(nt) == 18
     unreachable = sorted(k for k, v in nt.items() if not v["reachable"])
     assert unreachable == sorted([
         ("mexicali", "temperature"), ("amazon", "temperature"), ("iberia", "temperature"),
-        ("yucatan", "precipitation"), ("amazon", "precipitation"), ("iberia", "precipitation"),
+        ("mexicali", "precipitation"), ("iberia", "precipitation"),
         ("mexico_city", "soil_moisture"), ("yucatan", "soil_moisture"),
         ("amazon", "soil_moisture"), ("iberia", "soil_moisture")])
-    assert not any(v["allowed"] for v in nt.values())
+    assert sorted(k for k, v in nt.items() if v["allowed"]) == [("mexico_city", "precipitation")]
     for (region, var), v in nt.items():
-        assert v["margin"] == th["no_trend_margin"][var]
+        expected = (th["no_trend_margin"][var]["relative_to_mean"] * v["regional_mean"]
+                    if var == "precipitation" else th["no_trend_margin"][var])
+        assert v["margin"] == pytest.approx(expected)
         assert v["reachable"] == (v["half_width"] <= v["margin"])  # all 18 are inside the grid
     mc = nt[("mexico_city", "precipitation")]
-    assert mc["reachable"] and mc["hr_p"] >= th["alpha_moderate"] and not mc["allowed"]
+    assert mc["hr_p"] >= th["alpha_moderate"] and mc["margin"] == pytest.approx(0.0702, abs=1e-4)
+    # no case allowed "no trend" is flagged as having an optimistic interval
+    for k, v in nt.items():
+        if v["allowed"]:
+            assert "interval_optimistic" not in thresholds.noise_caveat(*k, th)
 
 
 def test_update_doc_fails_on_stale_bands(th, tmp_path):
@@ -261,8 +371,9 @@ def test_figures_regenerate_from_json_without_simulation(monkeypatch, tmp_path):
     def boom(*a, **k):
         raise AssertionError("the figures must not rerun the simulation")
 
-    for name in ("fpr_experiment", "coverage_experiment", "power_experiment", "run_case",
-                 "synthetic_series", "real_case_autocorr"):
+    for name in ("fpr_experiment", "coverage_experiment", "power_experiment", "applied_experiment",
+                 "noise_experiment", "fit_case_noise", "run_case", "synthetic_series",
+                 "real_case_autocorr"):
         monkeypatch.setattr(benchmark, name, boom)
     paths = benchmark_report.write_figures(benchmark_report.load_results(), tmp_path)
     assert sorted(p.name for p in paths) == sorted(benchmark_report.FIGURES.values())
@@ -297,6 +408,35 @@ def test_real_case_ranges(fpr):
     assert set(ranges) == {"temperature", "precipitation", "soil_moisture"}
     for lo, hi in ranges.values():
         assert -1 < lo <= hi < 1
+
+
+def test_lag3_truncation_explains_the_fpr_inflation():
+    """Finding 5(a): the 3-lag Hamed-Rao variance, over the all-lag one, at n = 540."""
+    ratios = [benchmark_report.hamed_rao_truncation_ratio(phi, 540) for phi in (0.3, 0.6, 0.8, 0.9)]
+    assert ratios == pytest.approx([0.96, 0.84, 0.56, 0.33], abs=0.01)
+    assert benchmark_report.hamed_rao_truncation_ratio(0.0, 540) == 1.0
+    assert benchmark_report.truncation_predicted_fpr(0.0, 540, 0.05) == pytest.approx(0.05)
+    assert benchmark_report.truncation_predicted_fpr(0.9, 540, 0.05) == pytest.approx(0.261, abs=0.002)
+
+
+def test_operative_cutoff(th):
+    assert [benchmark_report.operative_cutoff(p, th) for p in (0.0, 0.3, 0.6, 0.8, 0.9, 0.95)] == \
+        [0.05, 0.05, 0.05, 0.01, None, None]
+
+
+def test_update_doc_fails_on_stale_policy_results(th, tmp_path):
+    results = benchmark_report.load_results()
+    benchmark_report.check_policy_results_current(results, th)
+    for change, match in [
+        (lambda t: t["autocorrelation_bands"][0].update(moderate_alpha=0.01), "applied.json"),
+        (lambda t: t.update(noise_caveats=[]), "noise_caveats"),
+    ]:
+        stale = copy.deepcopy(th)
+        change(stale)
+        if match == "noise_caveats" and not th["noise_caveats"]:
+            continue
+        with pytest.raises(ValueError, match=match):
+            benchmark_report.check_policy_results_current(results, stale)
 
 
 def test_replace_tables_requires_markers_once():

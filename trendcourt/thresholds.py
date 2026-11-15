@@ -10,11 +10,15 @@ The file holds
 * ``alpha_strong`` / ``alpha_moderate``: Hamed–Rao p-value cut-offs.
 * ``window_agreement_strong``: share of windows with the same sign that
   Strong needs (Phase 3; recorded now so the schema does not change).
-* ``no_trend_margin``: per variable, in the variable's units per decade.
-  "No detectable trend" is allowed only when the Hamed–Rao test is not
-  significant at ``alpha_moderate`` *and* the AR(1)-widened Theil–Sen
-  interval (:func:`widened_interval`) lies inside ``[-margin, +margin]``,
-  for records inside the benchmarked autocorrelation range
+* ``no_trend_margin``: per variable, in the variable's units per decade
+  (``no_trend_margin_units``). A number is an absolute margin; an object
+  ``{"relative_to_mean": r}`` (precipitation) means ``r`` times the
+  region's mean, as ``no_trend_margin_formula`` states
+  (:func:`no_trend_margin`, :func:`regional_mean`). "No detectable trend"
+  is allowed only when the Hamed–Rao test is not significant at
+  ``alpha_moderate`` *and* the AR(1)-widened Theil–Sen interval
+  (:func:`widened_interval`) lies inside ``[-margin, +margin]``, for
+  records inside the benchmarked autocorrelation range
   (:func:`no_trend_allowed`).
 * ``interval_widening``: how that interval is widened; ``method`` must
   be ``"ar1"``, the only one implemented.
@@ -23,6 +27,14 @@ The file holds
   autocorrelation, the verdict cap and the Moderate cut-off that follow
   from ``docs/benchmark/fpr.json`` (:func:`derive_bands` rebuilds them).
   ``fpr_policy.test`` must be ``"hamed_rao"``, the test the bands use.
+  :func:`significance_claim` applies them to one record.
+* ``noise_model_check`` and ``noise_caveats``: the rule that flags a real
+  case whose own noise is more persistent than the AR(1) model behind the
+  bands and the widening, and the flagged cases it gives on
+  ``docs/benchmark/noise.json`` (:func:`derive_noise_caveats` rebuilds
+  them; :func:`noise_caveat` looks one case up). The card of a flagged
+  case must say that its stated false-positive rate and interval are
+  optimistic (``noise_model_check.card_text``).
 """
 
 from __future__ import annotations
@@ -35,6 +47,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 THRESHOLDS_PATH = Path(__file__).resolve().with_name("thresholds.json")
 FPR_PATH = REPO_ROOT / "docs" / "benchmark" / "fpr.json"
+NOISE_PATH = REPO_ROOT / "docs" / "benchmark" / "noise.json"
+
+SCHEMA_VERSION = 2
+"""Version 2: relative precipitation margin, noise-model caveats (statistics review, issue #19)."""
 
 VERDICT_ORDER = ("inconclusive", "moderate", "strong")
 """Verdict caps from weakest to strongest."""
@@ -47,7 +63,15 @@ WIDENING_METHOD = "ar1"
 
 REQUIRED_KEYS = ("schema_version", "source", "alpha_strong", "alpha_moderate",
                  "window_agreement_strong", "no_trend_margin", "no_trend_margin_units",
-                 "interval_widening", "fpr_policy", "autocorrelation_bands")
+                 "no_trend_margin_formula", "interval_widening", "fpr_policy",
+                 "autocorrelation_bands", "noise_model_check", "noise_caveats")
+
+RELATIVE_MARGIN_KEY = "relative_to_mean"
+"""Key of a relative ``no_trend_margin`` entry: the margin per decade as a
+fraction of the regional mean."""
+
+NOISE_FLAGS = ("interval_optimistic", "fpr_optimistic")
+"""Caveat flags :func:`derive_noise_caveats` can give a case."""
 
 
 def worst_fpr(fpr: dict, phi: float, alpha: float, test: str = TEST) -> dict:
@@ -107,10 +131,63 @@ def derive_bands(fpr: dict, alpha_strong: float, alpha_moderate: float,
     return bands
 
 
+def _is_number(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+
+
+def _check_margins(th: dict) -> None:
+    margins = th["no_trend_margin"]
+    if set(margins) != set(th["no_trend_margin_units"]):
+        raise ValueError("no_trend_margin and no_trend_margin_units must name the same variables")
+    relative = []
+    for var, m in margins.items():
+        if isinstance(m, dict):
+            r = m.get(RELATIVE_MARGIN_KEY)
+            if set(m) != {RELATIVE_MARGIN_KEY} or not (_is_number(r) and 0 < r < 1):
+                raise ValueError(f"no_trend_margin[{var!r}] must be a positive number or "
+                                 f"{{{RELATIVE_MARGIN_KEY!r}: r}} with 0 < r < 1, got {m!r}")
+            relative.append(var)
+        elif not (_is_number(m) and m > 0):
+            raise ValueError(f"no_trend_margin[{var!r}] must be a positive number, got {m!r}")
+    formula = th["no_trend_margin_formula"]
+    if not isinstance(formula, dict) or set(formula) != set(relative) or not all(
+            isinstance(formula[v], str) and formula[v] for v in relative):
+        raise ValueError("no_trend_margin_formula must state the formula of every relative margin, "
+                         f"and only those ({sorted(relative)})")
+
+
+def _check_noise(th: dict) -> None:
+    rule = th["noise_model_check"]
+    if not isinstance(rule, dict):
+        raise ValueError("noise_model_check must be an object")
+    v = rule.get("min_widened_coverage")
+    if not (_is_number(v) and 0 < v < 1):
+        raise ValueError(f"noise_model_check.min_widened_coverage must be in (0, 1), got {v!r}")
+    for key in ("source", "card_text"):
+        if not (isinstance(rule.get(key), str) and rule[key]):
+            raise ValueError(f"noise_model_check.{key} must be a non-empty string")
+    seen = set()
+    caveats = th["noise_caveats"]
+    if not isinstance(caveats, list):
+        raise ValueError("noise_caveats must be a list")
+    for c in caveats:
+        if not (isinstance(c, dict) and set(c) == {"region", "variable", "flags"}):
+            raise ValueError(f"each noise_caveats entry needs exactly region, variable, flags, got {c!r}")
+        key = (c["region"], c["variable"])
+        if key in seen:
+            raise ValueError(f"noise_caveats lists {key} twice")
+        seen.add(key)
+        if not c["flags"] or any(f not in NOISE_FLAGS for f in c["flags"]) or c["flags"] != sorted(set(c["flags"])):
+            raise ValueError(f"noise_caveats flags must be a sorted, non-empty subset of {NOISE_FLAGS}, "
+                             f"got {c['flags']!r}")
+
+
 def _check(th: dict) -> dict:
     missing = [k for k in REQUIRED_KEYS if k not in th]
     if missing:
         raise ValueError(f"thresholds.json is missing {missing}")
+    if th["schema_version"] != SCHEMA_VERSION:
+        raise ValueError(f"schema_version must be {SCHEMA_VERSION}, got {th['schema_version']!r}")
     a_s, a_m = th["alpha_strong"], th["alpha_moderate"]
     if not (0 < a_s < a_m < 1):
         raise ValueError(f"need 0 < alpha_strong < alpha_moderate < 1, got {a_s}, {a_m}")
@@ -130,12 +207,8 @@ def _check(th: dict) -> dict:
     if th["interval_widening"].get("method") != WIDENING_METHOD:
         raise ValueError(f"interval_widening.method must be {WIDENING_METHOD!r} (the only one "
                          f"widening_factor implements), got {th['interval_widening'].get('method')!r}")
-    margins = th["no_trend_margin"]
-    if set(margins) != set(th["no_trend_margin_units"]):
-        raise ValueError("no_trend_margin and no_trend_margin_units must name the same variables")
-    for var, m in margins.items():
-        if not (isinstance(m, (int, float)) and math.isfinite(m) and m > 0):
-            raise ValueError(f"no_trend_margin[{var!r}] must be a positive number, got {m!r}")
+    _check_margins(th)
+    _check_noise(th)
     bands = th["autocorrelation_bands"]
     if not bands:
         raise ValueError("autocorrelation_bands is empty")
@@ -188,6 +261,31 @@ def band_for(r1: float, thresholds: dict | None = None) -> dict | None:
     return None
 
 
+def significance_claim(r1: float, hr_p: float, thresholds: dict | None = None) -> str | None:
+    """The strongest significance label the record's band allows for this p.
+
+    ``"strong"`` when the band (:func:`band_for` of ``r1``) allows Strong
+    and ``hr_p < alpha_strong``; else ``"moderate"`` when the band allows a
+    claim and ``hr_p`` is below its ``moderate_alpha``; else ``None`` (no
+    significance claim: outside the bands, a band capped at Inconclusive,
+    or p too large). This is the significance part of the verdict only:
+    Strong also needs window and witness agreement (Phase 3), which only
+    remove claims. ``docs/benchmark/applied.json`` simulates this function
+    on trend-free series.
+    """
+    if not math.isfinite(hr_p):
+        raise ValueError(f"hr_p must be finite, got {hr_p}")
+    th = load() if thresholds is None else thresholds
+    band = band_for(r1, th)
+    if band is None or band["max_verdict"] == "inconclusive":
+        return None
+    if band["max_verdict"] == "strong" and hr_p < th["alpha_strong"]:
+        return "strong"
+    if hr_p < band["moderate_alpha"]:
+        return "moderate"
+    return None
+
+
 def widening_factor(r1: float) -> float:
     """AR(1) variance-inflation factor ``sqrt((1 + r1) / (1 - r1))``.
 
@@ -209,33 +307,120 @@ def widened_interval(slope: float, low: float, high: float, r1: float) -> tuple[
     return slope - f * (slope - low), slope + f * (high - slope)
 
 
+def regional_mean(climatology) -> float:
+    """The regional mean a relative margin refers to: the mean of the 12
+    calendar-month climatology values (``clerk.prepare(...).climatology``,
+    whose base period is the record itself), in the variable's units."""
+    values = [float(v) for v in climatology]
+    if len(values) != 12 or not all(math.isfinite(v) for v in values):
+        raise ValueError("the climatology must have 12 finite monthly values")
+    return sum(values) / 12.0
+
+
+def no_trend_margin(variable: str, thresholds: dict | None = None, *,
+                    regional_mean: float | None = None) -> float:
+    """``no_trend_margin`` for ``variable``, per decade, in its units.
+
+    An absolute margin is returned as is. A relative one
+    (``{"relative_to_mean": r}``, precipitation) is ``r * regional_mean``;
+    ``regional_mean`` (:func:`regional_mean` of the case's climatology)
+    is then required and must be positive.
+    """
+    th = load() if thresholds is None else thresholds
+    if variable not in th["no_trend_margin"]:
+        raise ValueError(f"no no_trend_margin for variable {variable!r}")
+    m = th["no_trend_margin"][variable]
+    if not isinstance(m, dict):
+        return float(m)
+    if regional_mean is None or not (math.isfinite(regional_mean) and regional_mean > 0):
+        raise ValueError(f"the {variable} margin is relative to the regional mean: pass a positive "
+                         f"regional_mean, got {regional_mean!r}")
+    return m[RELATIVE_MARGIN_KEY] * regional_mean
+
+
 def no_trend_allowed(variable: str, slope: float, low: float, high: float, r1: float,
-                     hr_p: float, thresholds: dict | None = None) -> bool:
+                     hr_p: float, thresholds: dict | None = None, *,
+                     regional_mean: float | None = None) -> bool:
     """Whether the evidence supports "No detectable trend".
 
     True only when ``r1`` is inside the benchmarked bands
     (:func:`band_for` is not ``None``), the Hamed–Rao test is not
     significant at ``alpha_moderate``, and the widened interval lies
-    inside ``[-no_trend_margin, +no_trend_margin]`` for ``variable``
-    (same units, per decade, as the slope and interval passed in).
+    inside ``[-margin, +margin]`` with ``margin`` from
+    :func:`no_trend_margin` (same units, per decade, as the slope and
+    interval passed in; ``regional_mean`` is required for precipitation,
+    whose margin is relative).
 
     * ``r1`` above the benchmark grid (``band_for`` is ``None``, so above
       0.9 with the committed bands): always False. The AR(1) widening was
-      checked only up to ``phi = 0.9`` (``docs/benchmark.md``, Table 3),
-      so the widened interval cannot be trusted there; the verdict is
-      Inconclusive.
+      checked only up to ``phi = 0.9``, so the widened interval cannot be
+      trusted there; the verdict is Inconclusive.
     * Inside the benchmarked bands, including the band capped at
       Inconclusive for significance claims ((0.8, 0.9] with the committed
       bands), "No detectable trend" stays allowed. That cap concerns the
-      false-positive rate of the significance test, not the interval; the
-      widening factor matches the simulated coverage up to ``phi = 0.9``
-      and is slightly conservative there (4.36 against the 4.17 needed).
+      false-positive rate of the significance test, not the interval.
+      Simulated with ``r1`` estimated from each record
+      (``docs/benchmark/applied.json``, ``docs/benchmark.md`` Tables 3 and 7),
+      the widened interval covers close to 95% on 45-year records up to
+      ``phi = 0.9`` (0.93 at 0.9), but only about 0.91–0.93 on 20-year
+      records at ``phi`` 0.85–0.9: Phase 3 windows of 20 years or less in
+      that band must not reuse this rule unchanged.
     """
     th = load() if thresholds is None else thresholds
-    if variable not in th["no_trend_margin"]:
-        raise ValueError(f"no no_trend_margin for variable {variable!r}")
+    m = no_trend_margin(variable, th, regional_mean=regional_mean)
     if band_for(r1, th) is None:
         return False
-    m = th["no_trend_margin"][variable]
     lo, hi = widened_interval(slope, low, high, r1)
     return hr_p >= th["alpha_moderate"] and -m <= lo and hi <= m
+
+
+def derive_noise_caveats(noise: dict, thresholds: dict | None = None) -> list[dict]:
+    """The ``noise_caveats`` that ``noise_model_check`` gives on ``noise.json``.
+
+    For each case of ``docs/benchmark/noise.json`` (trend-free records
+    simulated from the case's own fitted AR(p) noise, the policy applied
+    with each replicate's own ``r1``):
+
+    * ``interval_optimistic``: the widened interval's simulated coverage is
+      below ``noise_model_check.min_widened_coverage``;
+    * ``fpr_optimistic``: in a band that allows a claim, the lower end of
+      the exact 95% interval of the simulated false-claim rate is above the
+      rate the band states at its Moderate cut-off, or (in a band that
+      allows Strong) that of the false-Strong rate is above the stated rate
+      at ``alpha_strong``. The lower end, so Monte Carlo noise alone does
+      not flag a case.
+
+    Returns ``[{"region", "variable", "flags"}]`` for the flagged cases
+    only, in the file's order, flags sorted.
+    """
+    th = load() if thresholds is None else thresholds
+    rule = th["noise_model_check"]
+    out = []
+    for c in noise["cases"]:
+        flags = set()
+        if c["widened_coverage"]["rate"] < rule["min_widened_coverage"]:
+            flags.add("interval_optimistic")
+        if c["max_verdict"] != "inconclusive":
+            stated = c["stated_fpr"]
+            if c["false_claim"]["ci95"][0] > stated[f"{c['moderate_alpha']:g}"]:
+                flags.add("fpr_optimistic")
+            if (c["max_verdict"] == "strong"
+                    and c["false_strong"]["ci95"][0] > stated[f"{th['alpha_strong']:g}"]):
+                flags.add("fpr_optimistic")
+        if flags:
+            out.append({"region": c["region"], "variable": c["variable"], "flags": sorted(flags)})
+    return out
+
+
+def noise_caveat(region: str, variable: str, thresholds: dict | None = None) -> list[str]:
+    """The caveat flags of one real case (empty when it is not flagged).
+
+    A non-empty list means the card must print ``noise_model_check.card_text``:
+    the case's noise varies on longer time scales than AR(1) allows, so its
+    stated false-positive rate and interval are optimistic.
+    """
+    th = load() if thresholds is None else thresholds
+    for c in th["noise_caveats"]:
+        if c["region"] == region and c["variable"] == variable:
+            return list(c["flags"])
+    return []

@@ -1,6 +1,6 @@
 {
   "experiment": "coverage",
-  "description": "Coverage of the Theil-Sen 95% interval (examiner.theil_sen defaults: confidence 0.95, method='separate') on monthly series with a known linear trend, seasonal cycle and stationary AR(1) noise, through trendcourt.benchmark.run_case (Theil-Sen on clerk.deseasonalize anomalies). A replicate covers when low <= true slope <= high. 'below_flag' means the coverage estimate is below 0.93; 'below_nominal' means the whole exact 95% binomial interval lies below 0.95. miss_low counts intervals entirely below the true slope, miss_high entirely above.",
+  "description": "Coverage of the Theil-Sen 95% interval (examiner.theil_sen defaults: confidence 0.95, method='separate') on monthly series with a known linear trend, seasonal cycle and stationary AR(1) noise, through trendcourt.benchmark.run_case (Theil-Sen on clerk.deseasonalize anomalies). A replicate covers when low <= true slope <= high. 'below_flag' means the coverage estimate is below 0.93; 'below_nominal' means the whole exact 95% binomial interval lies below 0.95. miss_low counts intervals entirely below the true slope, miss_high entirely above. 'widened_coverage' is the coverage of the same interval widened as the verdict's no-trend rule widens it (trendcourt.thresholds.widened_interval), with r1 the detrended lag-1 autocorrelation estimated from each replicate, not the true phi; 'widening_factor_mean' is the mean factor applied.",
   "grid": {
     "phi": [
       0.0,
@@ -60,6 +60,17 @@
           0.9574244503133829
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 949,
+        "rate": 0.949,
+        "ci95": [
+          0.9334865384050651,
+          0.9617947632253139
+        ]
+      },
+      "widening_factor_mean": 1.0233182915426569,
+      "r1_detrended_mean": -0.006768241910673056,
       "miss_low": 28,
       "miss_high": 28,
       "slope_mean_per_decade": 0.09678290408489566,
@@ -84,6 +95,17 @@
           0.965264937733204
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 956,
+        "rate": 0.956,
+        "ci95": [
+          0.9413795807936691,
+          0.9678505029891286
+        ]
+      },
+      "widening_factor_mean": 1.021263075436603,
+      "r1_detrended_mean": -0.0019498749819550083,
       "miss_low": 22,
       "miss_high": 25,
       "slope_mean_per_decade": 0.10038978589693892,
@@ -108,6 +130,17 @@
           0.96956529373686
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 961,
+        "rate": 0.961,
+        "ci95": [
+          0.947069064214555,
+          0.9721228512046636
+        ]
+      },
+      "widening_factor_mean": 1.017114311416764,
+      "r1_detrended_mean": -0.0015304329845788577,
       "miss_low": 18,
       "miss_high": 24,
       "slope_mean_per_decade": 0.10076203318473487,
@@ -132,6 +165,17 @@
           0.9600507476399807
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 955,
+        "rate": 0.955,
+        "ci95": [
+          0.9402471673065922,
+          0.9669903745688513
+        ]
+      },
+      "widening_factor_mean": 1.02597919388244,
+      "r1_detrended_mean": -0.0034565322018809833,
       "miss_low": 15,
       "miss_high": 38,
       "slope_mean_per_decade": 0.3024559183058937,
@@ -156,6 +200,17 @@
           0.9635329408279522
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 955,
+        "rate": 0.955,
+        "ci95": [
+          0.9402471673065922,
+          0.9669903745688513
+        ]
+      },
+      "widening_factor_mean": 1.0220601892002246,
+      "r1_detrended_mean": 0.0009039454435513506,
       "miss_low": 27,
       "miss_high": 22,
       "slope_mean_per_decade": 0.29728774298164223,
@@ -180,6 +235,17 @@
           0.9600507476399807
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 949,
+        "rate": 0.949,
+        "ci95": [
+          0.9334865384050651,
+          0.9617947632253139
+        ]
+      },
+      "widening_factor_mean": 1.0158198285637356,
+      "r1_detrended_mean": -0.004373287629714011,
       "miss_low": 21,
       "miss_high": 32,
       "slope_mean_per_decade": 0.3002260378702285,
@@ -204,6 +270,17 @@
           0.9661285014523221
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 958,
+        "rate": 0.958,
+        "ci95": [
+          0.9436497084242552,
+          0.96956529373686
+        ]
+      },
+      "widening_factor_mean": 1.0245251088050655,
+      "r1_detrended_mean": -0.0072220162826760635,
       "miss_low": 24,
       "miss_high": 22,
       "slope_mean_per_decade": 0.49959715651363124,
@@ -228,6 +305,17 @@
           0.9738172911562627
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 964,
+        "rate": 0.964,
+        "ci95": [
+          0.9505070882819876,
+          0.9746610850701622
+        ]
+      },
+      "widening_factor_mean": 1.0217599644769024,
+      "r1_detrended_mean": -0.0002932043852488977,
       "miss_low": 20,
       "miss_high": 17,
       "slope_mean_per_decade": 0.5011772683370057,
@@ -252,6 +340,17 @@
           0.9617947632253139
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 949,
+        "rate": 0.949,
+        "ci95": [
+          0.9334865384050651,
+          0.9617947632253139
+        ]
+      },
+      "widening_factor_mean": 1.017642213798531,
+      "r1_detrended_mean": -0.0007365586505995488,
       "miss_low": 23,
       "miss_high": 28,
       "slope_mean_per_decade": 0.49930947170932277,
@@ -276,6 +375,17 @@
           0.881854147235034
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 949,
+        "rate": 0.949,
+        "ci95": [
+          0.9334865384050651,
+          0.9617947632253139
+        ]
+      },
+      "widening_factor_mean": 1.3542913036774906,
+      "r1_detrended_mean": 0.2908956537448912,
       "miss_low": 65,
       "miss_high": 74,
       "slope_mean_per_decade": 0.10210175686271819,
@@ -300,6 +410,17 @@
           0.8678269716273468
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 937,
+        "rate": 0.937,
+        "ci95": [
+          0.9201119581266455,
+          0.9512530724434194
+        ]
+      },
+      "widening_factor_mean": 1.356497664847158,
+      "r1_detrended_mean": 0.29358698277678197,
       "miss_low": 71,
       "miss_high": 83,
       "slope_mean_per_decade": 0.10380692540649064,
@@ -324,6 +445,17 @@
           0.877187248892484
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 934,
+        "rate": 0.934,
+        "ci95": [
+          0.9167939495385973,
+          0.9485914339810815
+        ]
+      },
+      "widening_factor_mean": 1.358231392839892,
+      "r1_detrended_mean": 0.2955049257661153,
       "miss_low": 64,
       "miss_high": 80,
       "slope_mean_per_decade": 0.1018549611456008,
@@ -348,6 +480,17 @@
           0.8678269716273468
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 941,
+        "rate": 0.941,
+        "ci95": [
+          0.9245509269157592,
+          0.9547866455972034
+        ]
+      },
+      "widening_factor_mean": 1.35295827814703,
+      "r1_detrended_mean": 0.29013131826822736,
       "miss_low": 78,
       "miss_high": 76,
       "slope_mean_per_decade": 0.299052055716071,
@@ -372,6 +515,17 @@
           0.8837183105663188
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 945,
+        "rate": 0.945,
+        "ci95": [
+          0.9290084844579425,
+          0.958301204920464
+        ]
+      },
+      "widening_factor_mean": 1.3561139616049784,
+      "r1_detrended_mean": 0.29318935870716695,
       "miss_low": 75,
       "miss_high": 62,
       "slope_mean_per_decade": 0.2958684286946251,
@@ -396,6 +550,17 @@
           0.8781213571241084
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 961,
+        "rate": 0.961,
+        "ci95": [
+          0.947069064214555,
+          0.9721228512046636
+        ]
+      },
+      "widening_factor_mean": 1.3584378109318274,
+      "r1_detrended_mean": 0.29555888814574016,
       "miss_low": 77,
       "miss_high": 66,
       "slope_mean_per_decade": 0.2983919342061334,
@@ -420,6 +585,17 @@
           0.8650123407930691
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 943,
+        "rate": 0.943,
+        "ci95": [
+          0.9267772705393378,
+          0.9565464180630414
+        ]
+      },
+      "widening_factor_mean": 1.356702155166357,
+      "r1_detrended_mean": 0.29226999333541237,
       "miss_low": 77,
       "miss_high": 80,
       "slope_mean_per_decade": 0.5028019538855287,
@@ -444,6 +620,17 @@
           0.851840151816802
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 940,
+        "rate": 0.94,
+        "ci95": [
+          0.9234395095960652,
+          0.9539049645775157
+        ]
+      },
+      "widening_factor_mean": 1.3596101613772456,
+      "r1_detrended_mean": 0.29562453046152626,
       "miss_low": 94,
       "miss_high": 77,
       "slope_mean_per_decade": 0.4981138511717315,
@@ -468,6 +655,17 @@
           0.8715751888838271
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 945,
+        "rate": 0.945,
+        "ci95": [
+          0.9290084844579425,
+          0.958301204920464
+        ]
+      },
+      "widening_factor_mean": 1.3611268462316093,
+      "r1_detrended_mean": 0.29741816595798276,
       "miss_low": 71,
       "miss_high": 79,
       "slope_mean_per_decade": 0.5009207968515538,
@@ -492,6 +690,17 @@
           0.6776283956454604
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 927,
+        "rate": 0.927,
+        "ci95": [
+          0.9090858246054988,
+          0.9423463747720674
+        ]
+      },
+      "widening_factor_mean": 1.9835348836171964,
+      "r1_detrended_mean": 0.5900591103941533,
       "miss_low": 183,
       "miss_high": 169,
       "slope_mean_per_decade": 0.09480303706963525,
@@ -516,6 +725,17 @@
           0.6874000715953352
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 939,
+        "rate": 0.939,
+        "ci95": [
+          0.9223292259508765,
+          0.9530221244589198
+        ]
+      },
+      "widening_factor_mean": 1.9923044844546272,
+      "r1_detrended_mean": 0.5945040855292212,
       "miss_low": 174,
       "miss_high": 168,
       "slope_mean_per_decade": 0.09960533772897283,
@@ -540,6 +760,17 @@
           0.70592606325204
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 941,
+        "rate": 0.941,
+        "ci95": [
+          0.9245509269157592,
+          0.9547866455972034
+        ]
+      },
+      "widening_factor_mean": 1.9967822016707542,
+      "r1_detrended_mean": 0.5969360919855297,
       "miss_low": 171,
       "miss_high": 152,
       "slope_mean_per_decade": 0.09843828224822847,
@@ -564,6 +795,17 @@
           0.6952069925690265
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 940,
+        "rate": 0.94,
+        "ci95": [
+          0.9234395095960652,
+          0.9539049645775157
+        ]
+      },
+      "widening_factor_mean": 1.9737438798355693,
+      "r1_detrended_mean": 0.5865125910596812,
       "miss_low": 183,
       "miss_high": 151,
       "slope_mean_per_decade": 0.2894765409629614,
@@ -588,6 +830,17 @@
           0.6903287623254493
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 934,
+        "rate": 0.934,
+        "ci95": [
+          0.9167939495385973,
+          0.9485914339810815
+        ]
+      },
+      "widening_factor_mean": 1.9837074797442336,
+      "r1_detrended_mean": 0.5915554140423167,
       "miss_low": 156,
       "miss_high": 183,
       "slope_mean_per_decade": 0.30338084386727704,
@@ -612,6 +865,17 @@
           0.6981321639231706
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 944,
+        "rate": 0.944,
+        "ci95": [
+          0.9278922537167472,
+          0.9574244503133829
+        ]
+      },
+      "widening_factor_mean": 1.9874599593758508,
+      "r1_detrended_mean": 0.5938742620736712,
       "miss_low": 175,
       "miss_high": 156,
       "slope_mean_per_decade": 0.2989011291726217,
@@ -636,6 +900,17 @@
           0.7068996236579649
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 945,
+        "rate": 0.945,
+        "ci95": [
+          0.9290084844579425,
+          0.958301204920464
+        ]
+      },
+      "widening_factor_mean": 1.978087730520845,
+      "r1_detrended_mean": 0.587918449446683,
       "miss_low": 169,
       "miss_high": 153,
       "slope_mean_per_decade": 0.4979332513358162,
@@ -660,6 +935,17 @@
           0.707873032404677
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 947,
+        "rate": 0.947,
+        "ci95": [
+          0.9312448167100368,
+          0.9600507476399807
+        ]
+      },
+      "widening_factor_mean": 1.9812903966987674,
+      "r1_detrended_mean": 0.5910089082569752,
       "miss_low": 163,
       "miss_high": 158,
       "slope_mean_per_decade": 0.4984750730160268,
@@ -684,6 +970,17 @@
           0.70592606325204
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 943,
+        "rate": 0.943,
+        "ci95": [
+          0.9267772705393378,
+          0.9565464180630414
+        ]
+      },
+      "widening_factor_mean": 1.9893706451000666,
+      "r1_detrended_mean": 0.5945573382274635,
       "miss_low": 159,
       "miss_high": 164,
       "slope_mean_per_decade": 0.4992707122104861,
@@ -708,6 +1005,17 @@
           0.49547685692812565
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 917,
+        "rate": 0.917,
+        "ci95": [
+          0.8981467032446243,
+          0.9333510681911211
+        ]
+      },
+      "widening_factor_mean": 2.9069797264882027,
+      "r1_detrended_mean": 0.782696451764615,
       "miss_low": 271,
       "miss_high": 265,
       "slope_mean_per_decade": 0.09986272096482689,
@@ -732,6 +1040,17 @@
           0.48846322441830325
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 936,
+        "rate": 0.936,
+        "ci95": [
+          0.919004925632949,
+          0.950366910708151
+        ]
+      },
+      "widening_factor_mean": 2.9546079108797576,
+      "r1_detrended_mean": 0.7906146058994036,
       "miss_low": 268,
       "miss_high": 275,
       "slope_mean_per_decade": 0.10257495982230502,
@@ -756,6 +1075,17 @@
           0.5294564826459982
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 957,
+        "rate": 0.957,
+        "ci95": [
+          0.9425137420380276,
+          0.9687088295439074
+        ]
+      },
+      "widening_factor_mean": 2.974509750408167,
+      "r1_detrended_mean": 0.7944456527600701,
       "miss_low": 244,
       "miss_high": 258,
       "slope_mean_per_decade": 0.10244787462920733,
@@ -780,6 +1110,17 @@
           0.5414151292858821
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 935,
+        "rate": 0.935,
+        "ci95": [
+          0.917898930078629,
+          0.949479690310382
+        ]
+      },
+      "widening_factor_mean": 2.917164637974746,
+      "r1_detrended_mean": 0.7837434623811946,
       "miss_low": 247,
       "miss_high": 243,
       "slope_mean_per_decade": 0.2931476301891515,
@@ -804,6 +1145,17 @@
           0.5573322655259105
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 946,
+        "rate": 0.946,
+        "ci95": [
+          0.9301259944229326,
+          0.9591766488743693
+        ]
+      },
+      "widening_factor_mean": 2.9480690856655247,
+      "r1_detrended_mean": 0.7898863941247916,
       "miss_low": 225,
       "miss_high": 249,
       "slope_mean_per_decade": 0.2985026148466984,
@@ -828,6 +1180,17 @@
           0.5084859896841312
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 945,
+        "rate": 0.945,
+        "ci95": [
+          0.9290084844579425,
+          0.958301204920464
+        ]
+      },
+      "widening_factor_mean": 2.96936799799209,
+      "r1_detrended_mean": 0.7938800038508144,
       "miss_low": 253,
       "miss_high": 270,
       "slope_mean_per_decade": 0.30154318774415123,
@@ -852,6 +1215,17 @@
           0.5414151292858821
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 921,
+        "rate": 0.921,
+        "ci95": [
+          0.9025129050930988,
+          0.9369587971905401
+        ]
+      },
+      "widening_factor_mean": 2.9198497101151,
+      "r1_detrended_mean": 0.7845243808491309,
       "miss_low": 253,
       "miss_high": 237,
       "slope_mean_per_decade": 0.4926724553620973,
@@ -876,6 +1250,17 @@
           0.5234704817428755
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 941,
+        "rate": 0.941,
+        "ci95": [
+          0.9245509269157592,
+          0.9547866455972034
+        ]
+      },
+      "widening_factor_mean": 2.9387212631208075,
+      "r1_detrended_mean": 0.7884456605253511,
       "miss_low": 252,
       "miss_high": 256,
       "slope_mean_per_decade": 0.5064064590573001,
@@ -900,6 +1285,17 @@
           0.5184787461735794
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 942,
+        "rate": 0.942,
+        "ci95": [
+          0.9256635046176483,
+          0.9556671397471793
+        ]
+      },
+      "widening_factor_mean": 2.961727310770245,
+      "r1_detrended_mean": 0.792828823532891,
       "miss_low": 254,
       "miss_high": 259,
       "slope_mean_per_decade": 0.5034813313447049,
@@ -924,6 +1320,17 @@
           0.3957015511460871
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 904,
+        "rate": 0.904,
+        "ci95": [
+          0.8840333566371232,
+          0.9215479637525775
+        ]
+      },
+      "widening_factor_mean": 4.081996989041259,
+      "r1_detrended_mean": 0.8804419950050333,
       "miss_low": 327,
       "miss_high": 308,
       "slope_mean_per_decade": 0.08797343901733545,
@@ -948,6 +1355,17 @@
           0.39468710511955296
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 918,
+        "rate": 0.918,
+        "ci95": [
+          0.8992371325846886,
+          0.9342541397281681
+        ]
+      },
+      "widening_factor_mean": 4.168373906822364,
+      "r1_detrended_mean": 0.8870033718518348,
       "miss_low": 329,
       "miss_high": 307,
       "slope_mean_per_decade": 0.09217576947690097,
@@ -972,6 +1390,17 @@
           0.3906279323794035
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 940,
+        "rate": 0.94,
+        "ci95": [
+          0.9234395095960652,
+          0.9539049645775157
+        ]
+      },
+      "widening_factor_mean": 4.230667046600733,
+      "r1_detrended_mean": 0.891340500353592,
       "miss_low": 317,
       "miss_high": 323,
       "slope_mean_per_decade": 0.09807398944085696,
@@ -996,6 +1425,17 @@
           0.3631692178520081
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 903,
+        "rate": 0.903,
+        "ci95": [
+          0.8829521560197129,
+          0.9206355281706361
+        ]
+      },
+      "widening_factor_mean": 4.058226478022771,
+      "r1_detrended_mean": 0.8794425901630729,
       "miss_low": 324,
       "miss_high": 343,
       "slope_mean_per_decade": 0.3014950621130671,
@@ -1020,6 +1460,17 @@
           0.3906279323794035
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 918,
+        "rate": 0.918,
+        "ci95": [
+          0.8992371325846886,
+          0.9342541397281681
+        ]
+      },
+      "widening_factor_mean": 4.144058563433675,
+      "r1_detrended_mean": 0.8858072607524976,
       "miss_low": 328,
       "miss_high": 312,
       "slope_mean_per_decade": 0.299739089628024,
@@ -1044,6 +1495,17 @@
           0.40583843938105607
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 928,
+        "rate": 0.928,
+        "ci95": [
+          0.9101842508246492,
+          0.9432413124454384
+        ]
+      },
+      "widening_factor_mean": 4.22080266804301,
+      "r1_detrended_mean": 0.8912537072436195,
       "miss_low": 309,
       "miss_high": 316,
       "slope_mean_per_decade": 0.29914456565822667,
@@ -1068,6 +1530,17 @@
           0.39671585879636684
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 928,
+        "rate": 0.928,
+        "ci95": [
+          0.9101842508246492,
+          0.9432413124454384
+        ]
+      },
+      "widening_factor_mean": 4.064104574528346,
+      "r1_detrended_mean": 0.879363513371414,
       "miss_low": 319,
       "miss_high": 315,
       "slope_mean_per_decade": 0.5018093803886635,
@@ -1092,6 +1565,17 @@
           0.4098893715369726
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 931,
+        "rate": 0.931,
+        "ci95": [
+          0.9134848906542885,
+          0.9459206642067437
+        ]
+      },
+      "widening_factor_mean": 4.165608337325199,
+      "r1_detrended_mean": 0.8872427772510114,
       "miss_low": 327,
       "miss_high": 294,
       "slope_mean_per_decade": 0.4849082981675079,
@@ -1116,6 +1600,17 @@
           0.3814866010926249
         ]
       },
+      "widened_coverage": {
+        "n": 1000,
+        "k": 921,
+        "rate": 0.921,
+        "ci95": [
+          0.9025129050930988,
+          0.9369587971905401
+        ]
+      },
+      "widening_factor_mean": 4.218008931868246,
+      "r1_detrended_mean": 0.8905688542142611,
       "miss_low": 324,
       "miss_high": 325,
       "slope_mean_per_decade": 0.502754592411707,

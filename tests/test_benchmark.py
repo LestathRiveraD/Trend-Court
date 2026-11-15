@@ -1,10 +1,11 @@
+import math
 import json
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from trendcourt import benchmark, case, clerk, examiner
+from trendcourt import benchmark, case, clerk, examiner, thresholds
 
 
 # --- synthetic_series -------------------------------------------------------
@@ -253,14 +254,18 @@ def test_coverage_cell_matches_run_case_by_hand():
     phi, slope, n, seed, reps = 0.6, 0.3, 20, 5, 8
     res = benchmark.coverage_experiment(reps, phis=(phi,), slopes=(slope,), years=(n,), seed=seed, chunk=3)
     cell = res["cells"][0]
-    covered, est = 0, []
+    covered, widened, est = 0, 0, []
     for rep in range(reps):
         y = benchmark.synthetic_series(n, phi, benchmark.TREND_SIGMA, benchmark.TREND_SEASONAL_AMP, slope,
                                        seed=benchmark.trend_replicate_seed(seed, phi, slope, n, rep))
         r = benchmark.run_case(y)
         covered += r["ts_low"] <= slope / 10 <= r["ts_high"]
+        lo, hi = thresholds.widened_interval(r["ts_slope"], r["ts_low"], r["ts_high"], r["r1_detrended"])
+        widened += lo <= slope / 10 <= hi
         est.append(r["ts_slope_per_decade"])
     assert cell["coverage"]["k"] == covered and cell["coverage"]["n"] == reps
+    assert cell["widened_coverage"]["k"] == widened and cell["widened_coverage"]["n"] == reps
+    assert widened >= covered
     assert cell["miss_low"] + cell["miss_high"] == reps - covered
     assert cell["slope_median_per_decade"] == pytest.approx(np.median(est))
 
@@ -398,6 +403,8 @@ def _load_benchmark_cli():
     ("fpr", 17, 1000),
     ("coverage", 18, 1000),
     ("power", 19, 1000),
+    ("applied", 20, 1000),
+    ("noise", 21, 1000),
 ])
 def test_cli_per_experiment_defaults(monkeypatch, experiment, seed, replicates):
     """Without --seed/--replicates/--out the CLI uses the experiment's own master
@@ -412,7 +419,7 @@ def test_cli_per_experiment_defaults(monkeypatch, experiment, seed, replicates):
             return 0
         return run
 
-    for name in ("fpr", "coverage", "power"):
+    for name in ("fpr", "coverage", "power", "applied", "noise"):
         monkeypatch.setattr(cli, f"run_{name}", fake(name))
 
     assert cli.main(["--experiment", experiment, "--workers", "1"]) == 0
@@ -435,3 +442,143 @@ def test_cli_explicit_arguments_override_defaults(monkeypatch, tmp_path):
     assert (args.replicates, args.seed, args.workers, args.out) == (3, 5, 2, out)
     with pytest.raises(SystemExit):
         cli.main(["--experiment", "coverage", "--replicates", "0"])
+
+
+# --- r1 in run_case -----------------------------------------------------------
+
+
+def test_run_case_reports_detrended_r1_and_can_skip_the_seasonal_test():
+    y = benchmark.synthetic_series(30, 0.6, 1.0, 10.0, 0.3, seed=8)
+    full = benchmark.run_case(y)
+    quick = benchmark.run_case(y, seasonal=False)
+    a = clerk.deseasonalize(y)
+    t = clerk.time_in_years(y.index)
+    ts = examiner.theil_sen(t, a)
+    assert full["r1_detrended"] == benchmark.lag1_autocorr(a.to_numpy() - (ts.intercept + ts.slope * t))
+    assert quick["smk_p"] is None and quick["smk_h"] is None
+    assert {k: v for k, v in quick.items() if not k.startswith("smk")} == \
+        {k: v for k, v in full.items() if not k.startswith("smk")}
+
+
+def test_committed_coverage_json_has_widened_coverage():
+    res = json.loads((clerk.REPO_ROOT / "docs" / "benchmark" / "coverage.json").read_text(encoding="utf-8"))
+    for c in res["cells"]:
+        w = c["widened_coverage"]
+        assert w["n"] == c["coverage"]["n"] and w["k"] >= c["coverage"]["k"]
+        assert c["widening_factor_mean"] >= 1.0
+
+
+# --- experiment (d): the policy as applied --------------------------------------
+
+
+def test_applied_experiment_reproducible_and_matches_policy_by_hand():
+    th = thresholds.load()
+    kw = dict(phis=(0.3, 0.85), years=(20,), seed=6, chunk=3)
+    a = benchmark.applied_experiment(7, workers=1, **kw)
+    b = benchmark.applied_experiment(7, workers=2, **kw)
+    assert a == b
+    json.dumps(a, allow_nan=False)
+    assert a["thresholds_used"] == benchmark._thresholds_used(th)
+    for cell in a["cells"]:
+        phi = cell["phi"]
+        claims = strong = widened = 0
+        r1s = []
+        for rep in range(7):
+            y = benchmark.synthetic_series(20, phi, 1.0, 10.0, seed=benchmark.replicate_seed(6, phi, 20, rep))
+            r = benchmark.run_case(y, seasonal=False)
+            c = thresholds.significance_claim(r["r1_detrended"], r["hr_p"], th)
+            claims += c is not None
+            strong += c == "strong"
+            lo, hi = thresholds.widened_interval(r["ts_slope"], r["ts_low"], r["ts_high"], r["r1_detrended"])
+            widened += lo <= 0 <= hi
+            r1s.append(r["r1_detrended"])
+        assert cell["false_claim"]["k"] == claims and cell["false_strong"]["k"] == strong
+        assert cell["widened_coverage"]["k"] == widened
+        assert cell["r1_detrended_mean"] == pytest.approx(np.mean(r1s))
+        assert cell["r1_detrended_bias"] == pytest.approx(np.mean(r1s) - phi)
+        assert sum(cell["band_shares"].values()) == pytest.approx(1.0)
+    with pytest.raises(ValueError):
+        benchmark.applied_experiment(0)
+
+
+def test_committed_applied_json_supports_the_policy():
+    """The evidence for closing open point 3: with r1 estimated per record,
+    the policy keeps false significance claims within max_fpr_moderate and
+    false Strong claims within max_fpr_strong at every true phi simulated,
+    on and off the band grid, including above it."""
+    res = json.loads((clerk.REPO_ROOT / "docs" / "benchmark" / "applied.json").read_text(encoding="utf-8"))
+    th = thresholds.load()
+    assert res["grid"] == {"phi": list(benchmark.APPLIED_PHIS), "n_years": list(benchmark.APPLIED_YEARS)}
+    assert res["replicates"] >= 1000 and res["seeds"]["master"] == benchmark.APPLIED_SEED
+    assert len(res["cells"]) == len(benchmark.APPLIED_PHIS) * len(benchmark.APPLIED_YEARS)
+    p = th["fpr_policy"]
+    for c in res["cells"]:
+        assert c["n_failed"] == 0
+        assert c["false_claim"]["rate"] <= p["max_fpr_moderate"], c["phi"]
+        assert c["false_strong"]["rate"] <= p["max_fpr_strong"], c["phi"]
+        assert c["false_strong"]["k"] <= c["false_claim"]["k"]
+
+
+# --- experiment (e): the real cases' noise --------------------------------------
+
+
+def test_case_seed_key_is_stable():
+    assert benchmark.case_seed_key("amazon", "precipitation") == benchmark.case_seed_key("amazon", "precipitation")
+    import zlib
+
+    assert benchmark.case_seed_key("sahel", "soil_moisture") == zlib.crc32(b"sahel/soil_moisture")
+
+
+def test_yule_walker_and_long_run_ratio_on_ar1():
+    rng = np.random.default_rng(0)
+    from scipy import signal
+
+    x = signal.lfilter([1.0], [1.0, -0.6], rng.normal(size=20000))
+    coef, s2 = benchmark.yule_walker(x, 1)
+    assert coef[0] == pytest.approx(0.6, abs=0.02)
+    assert benchmark.ar_long_run_ratio([0.6], 1 - 0.36, 1.0) == pytest.approx(1.6 / 0.4)
+    assert math.sqrt(benchmark.ar_long_run_ratio([0.8], 1 - 0.64, 1.0)) == pytest.approx(
+        thresholds.widening_factor(0.8))
+
+
+def test_bartlett_vif():
+    assert benchmark.bartlett_vif([0.0] * 5, 5) == 1.0
+    assert benchmark.bartlett_vif([0.5, 0.25], 2) == pytest.approx(1 + 2 * (0.5 * 2 / 3 + 0.25 * 1 / 3))
+    r = 0.7
+    rho = r ** np.arange(1, 2000)
+    # untruncated limit is the AR(1) long-run ratio; truncation biases it low
+    assert benchmark.bartlett_vif(rho, 36) < (1 + r) / (1 - r)
+
+
+def test_fit_case_noise_on_a_real_case():
+    f = benchmark.fit_case_noise("sahel", "precipitation")
+    assert f["n_months"] == 540 and 1 <= f["ar_order"] <= benchmark.NOISE_MAX_ORDER
+    assert len(f["ar_coef"]) == f["ar_order"] and len(f["month_sd"]) == 12
+    assert f["acf"]["1"] == pytest.approx(f["r1_detrended"])
+    assert f["ar1_widening"] == pytest.approx(thresholds.widening_factor(f["r1_detrended"]))
+    y = benchmark._noise_series(f, (1, 2, 3))
+    assert len(y) == 540 and y.index[0] == pd.Timestamp(f["index_start"])
+    assert np.array_equal(y.to_numpy(), benchmark._noise_series(f, (1, 2, 3)).to_numpy())
+
+
+def test_noise_experiment_small_is_reproducible():
+    kw = dict(cases=[("sahel", "precipitation")], seed=4, chunk=2)
+    a = benchmark.noise_experiment(5, workers=1, **kw)
+    b = benchmark.noise_experiment(5, workers=2, **kw)
+    assert a == b
+    json.dumps(a, allow_nan=False)
+    (c,) = a["cases"]
+    assert c["replicates"] == 5 and c["false_claim"]["n"] + c["n_failed"] == 5
+    assert c["stated_fpr"] == {k: v["rate"] for k, v in
+                               thresholds.band_for(c["r1_detrended"])["hamed_rao_fpr"].items()}
+
+
+def test_committed_noise_json_is_complete():
+    res = json.loads((clerk.REPO_ROOT / "docs" / "benchmark" / "noise.json").read_text(encoding="utf-8"))
+    assert res["replicates"] >= 1000 and res["seeds"]["master"] == benchmark.NOISE_SEED
+    assert len(res["cases"]) == 18
+    fpr = json.loads(thresholds.FPR_PATH.read_text(encoding="utf-8"))
+    r1 = {(r["region"], r["variable"]): r["r1_detrended"] for r in fpr["real_cases"]}
+    for c in res["cases"]:
+        assert c["n_failed"] == 0
+        assert c["r1_detrended"] == pytest.approx(r1[(c["region"], c["variable"])], abs=1e-12)
