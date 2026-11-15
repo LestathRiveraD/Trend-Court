@@ -121,8 +121,10 @@ class GiovanniHeader:
     """Metadata lines at the top of a Giovanni time-series CSV.
 
     Boxes are ``(west, south, east, north)`` in degrees, as Giovanni
-    writes them. ``data_bbox`` is the user box snapped to the source
-    grid, i.e. the area Giovanni actually averaged.
+    writes them. ``data_bbox`` gives the outermost source-grid cell
+    *centers* inside the user box, not the edges of the averaged area:
+    the cells extend half a grid step beyond it on each side (for
+    MERRA-2, see :func:`trendcourt.crosscheck.data_area`).
     """
 
     title: str

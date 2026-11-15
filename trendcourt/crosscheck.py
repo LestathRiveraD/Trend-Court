@@ -118,8 +118,9 @@ def compare(a: pd.Series, b: pd.Series, tolerances: Tolerances = GATE1) -> Cross
     """Compare monthly series ``a`` (ours) against ``b`` (the reference).
 
     Both need a month-start ``DatetimeIndex``. Only months where both are
-    non-NaN are used; at least 24 shared months are required so every
-    calendar month has two values for the climatology.
+    non-NaN are used. At least 24 shared months are required, with at
+    least two values in every calendar month, so each month's climatology
+    is not just its single value.
     """
     for name, s in (("a", a), ("b", b)):
         if not isinstance(s.index, pd.DatetimeIndex):
@@ -129,6 +130,10 @@ def compare(a: pd.Series, b: pd.Series, tolerances: Tolerances = GATE1) -> Cross
     both = pd.concat({"a": a, "b": b}, axis=1, join="inner").dropna()
     if len(both) < 24:
         raise ValueError(f"need at least 24 shared non-NaN months, got {len(both)}")
+    per_month = both.index.month.value_counts().reindex(range(1, 13), fill_value=0)
+    if per_month.min() < 2:
+        short = [int(m) for m in per_month.index[per_month < 2]]
+        raise ValueError(f"need at least 2 shared non-NaN values per calendar month; months {short} have fewer")
 
     anom = both.apply(clerk.deseasonalize)
     t = clerk.time_in_years(both.index)
@@ -147,10 +152,42 @@ def compare(a: pd.Series, b: pd.Series, tolerances: Tolerances = GATE1) -> Cross
     )
 
 
+# MERRA-2 grid: cell centers at lon = -180 + 0.625·i, lat = -90 + 0.5·j.
+MERRA2_DLON = 0.625
+MERRA2_DLAT = 0.5
+
+
+def merra2_cell(lat, lon) -> tuple[np.ndarray, np.ndarray]:
+    """Center ``(lat, lon)`` of the MERRA-2 cell containing each point
+    (the nearest center)."""
+    lat = np.asarray(lat, dtype=float)
+    lon = np.asarray(lon, dtype=float)
+    return (-90 + MERRA2_DLAT * np.round((lat + 90) / MERRA2_DLAT),
+            -180 + MERRA2_DLON * np.round((lon + 180) / MERRA2_DLON))
+
+
+def data_area(data_bbox) -> tuple[float, float, float, float]:
+    """Area covered by the cells of a Giovanni Data Bounding Box.
+
+    Giovanni writes the data box as the outermost MERRA-2 cell *centers*
+    it averaged, so the cells extend half a cell beyond it on each side.
+    Both boxes are ``(west, south, east, north)``.
+    """
+    west, south, east, north = data_bbox
+    return (west - MERRA2_DLON / 2, south - MERRA2_DLAT / 2, east + MERRA2_DLON / 2, north + MERRA2_DLAT / 2)
+
+
+def n_cells(data_bbox) -> int:
+    """Number of MERRA-2 cells whose centers span the Giovanni data box."""
+    west, south, east, north = data_bbox
+    return (round((east - west) / MERRA2_DLON) + 1) * (round((north - south) / MERRA2_DLAT) + 1)
+
+
 def points_in_box(df: pd.DataFrame, bbox, eps: float = 1e-9) -> pd.DataFrame:
     """Columns of a :func:`clerk.load_power_region` frame whose point lies
     inside ``bbox = (west, south, east, north)`` (Giovanni's order), edges
-    included."""
+    included. ``bbox`` is an area; pass a Giovanni data box through
+    :func:`data_area` first."""
     west, south, east, north = bbox
     lat = df.columns.get_level_values("lat").to_numpy(dtype=float)
     lon = df.columns.get_level_values("lon").to_numpy(dtype=float)
@@ -161,12 +198,32 @@ def points_in_box(df: pd.DataFrame, bbox, eps: float = 1e-9) -> pd.DataFrame:
 
 
 def power_in_box(region: str, bbox, var: str = "T2M") -> tuple[pd.Series, int]:
-    """POWER series re-averaged over only the region's points inside ``bbox``;
-    returns the series and the number of points used."""
+    """POWER series re-averaged over only the region's points inside the
+    area ``bbox``; returns the series and the number of points used."""
     df = points_in_box(clerk.load_power_region(region, var), bbox)
     series = clerk.aggregate(df, df.columns.get_level_values("lat"))
     series.name = clerk.power_code(var)
     return series, df.shape[1]
+
+
+def per_cell(df: pd.DataFrame) -> pd.DataFrame:
+    """Average the points of a :func:`clerk.load_power_region` frame that
+    fall in the same MERRA-2 cell, giving one column per distinct cell,
+    keyed by the cell center ``(lat, lon)``."""
+    lat, lon = merra2_cell(df.columns.get_level_values("lat"), df.columns.get_level_values("lon"))
+    out = df.T.groupby([lat, lon]).mean().T
+    out.columns = out.columns.set_names(["lat", "lon"])
+    return out
+
+
+def power_per_cell(region: str, var: str = "T2M") -> tuple[pd.Series, int]:
+    """POWER series with one value per distinct MERRA-2 cell, cos(lat)
+    weighted at the cell centers, so a cell sampled by several points
+    counts once; returns the series and the number of cells."""
+    cells = per_cell(clerk.load_power_region(region, var))
+    series = clerk.aggregate(cells, cells.columns.get_level_values("lat"))
+    series.name = clerk.power_code(var)
+    return series, cells.shape[1]
 
 
 def plot_comparison(a: pd.Series, b: pd.Series, result: CrossCheckResult, path, *,

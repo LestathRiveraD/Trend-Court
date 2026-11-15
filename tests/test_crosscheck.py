@@ -74,6 +74,35 @@ def test_compare_rejects_short_overlap():
         crosscheck.compare(s, s)
 
 
+def test_compare_rejects_calendar_month_with_one_value():
+    s = seasonal(n_years=3)
+    s[(s.index.month == 7) & (s.index.year > 1981)] = np.nan
+    assert s.notna().sum() >= 24
+    with pytest.raises(ValueError, match=r"per calendar month; months \[7\]"):
+        crosscheck.compare(s, s)
+
+
+def test_merra2_cell_snaps_to_nearest_center():
+    lat, lon = crosscheck.merra2_cell([32.1, 32.9, -3.6667], [-115.8, -115.4, -59.3333])
+    assert lat.tolist() == pytest.approx([32.0, 33.0, -3.5])
+    assert lon.tolist() == pytest.approx([-115.625, -115.625, -59.375])
+
+
+def test_data_area_widens_cell_centers_by_half_a_cell():
+    assert crosscheck.data_area((-115.625, 32.0, -115.0, 33.0)) == pytest.approx((-115.9375, 31.75, -114.6875, 33.25))
+    assert crosscheck.n_cells((-115.625, 32.0, -115.0, 33.0)) == 6
+    assert crosscheck.n_cells((-4.375, 39.5, -2.5, 41.5)) == 20
+
+
+def test_per_cell_averages_points_in_the_same_cell_once():
+    cols = pd.MultiIndex.from_tuples([(32.1, -115.8), (32.1, -115.4), (32.1, -115.0)], names=["lat", "lon"])
+    df = pd.DataFrame([[1.0, 3.0, 10.0]], columns=cols)
+    cells = crosscheck.per_cell(df)
+    assert list(cells.columns) == [(32.0, -115.625), (32.0, -115.0)]
+    assert cells.iloc[0].tolist() == [2.0, 10.0]
+    assert cells.columns.names == ["lat", "lon"]
+
+
 def test_points_in_box_includes_edges():
     cols = pd.MultiIndex.from_tuples([(32.1, -115.8), (32.1, -115.4), (32.9, -115.0), (33.5, -115.0)],
                                      names=["lat", "lon"])
@@ -102,9 +131,24 @@ def test_gate1b_power_tracks_giovanni_merra2(region):
     assert r.intervals_overlap
 
 
-def test_mexicali_data_box_removes_bias():
+@pytest.mark.parametrize("region", ["mexicali", "iberia", "amazon"])
+def test_giovanni_data_area_contains_all_power_points(region):
+    data_bbox = clerk.read_giovanni_header(clerk.GIOVANNI_DIR / f"{region}_M2TMNXSLV_T2M.csv").data_bbox
+    _, n = crosscheck.power_in_box(region, crosscheck.data_area(data_bbox))
+    assert n == 9
+
+
+def test_mexicali_one_value_per_cell_removes_bias():
     path = clerk.GIOVANNI_DIR / "mexicali_M2TMNXSLV_T2M.csv"
-    boxed, n = crosscheck.power_in_box("mexicali", clerk.read_giovanni_header(path).data_bbox)
-    r = crosscheck.compare(boxed, clerk.load_giovanni_csv(path))
-    assert n == 6
+    series, n = crosscheck.power_per_cell("mexicali")
+    assert n == 6 == crosscheck.n_cells(clerk.read_giovanni_header(path).data_bbox)
+    r = crosscheck.compare(series, clerk.load_giovanni_csv(path))
     assert abs(r.bias) < 0.02
+
+
+def test_power_points_sharing_a_merra2_cell_are_identical():
+    # POWER returns the containing MERRA-2 cell's value: lon -115.8 and -115.4
+    # both fall in the cell centered at -115.625.
+    df = clerk.load_power_region("mexicali", "T2M")
+    for lat in (32.1, 32.5, 32.9):
+        assert (df[(lat, -115.8)] == df[(lat, -115.4)]).all()
