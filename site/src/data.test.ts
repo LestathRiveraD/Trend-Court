@@ -46,19 +46,20 @@ describe("caseUrl", () => {
   });
 });
 
-describe("committed stand-in data", () => {
-  it("the stand-in case is the Gate 1 (a) reference file, unchanged", () => {
+describe("committed case cache", () => {
+  it("the mexicali temperature case is the Gate 1 (a) reference file, unchanged", () => {
     expect(read("mexicali_temperature.json")).toEqual(gate1());
   });
 
   it("every case in index.json loads and matches its entry", async () => {
     const { fetchFn } = servePublic();
     const index = await loadIndex(fetchFn);
-    expect(index.cases.length).toBeGreaterThan(0);
+    expect(index.cases.length).toBe(18);
     for (const entry of index.cases) {
       const c = await loadCase(entry, fetchFn);
       expect(c.schema_version).toBe(CASE_SCHEMA_VERSION);
       expect(c.quality.passed).toBe(entry.quality.passed);
+      expect(entry.verdict).toBe(c.verdict.label);
     }
   });
 });
@@ -108,10 +109,6 @@ describe("parseCase", () => {
     const { verdict: _, ...rest } = gate1();
     expect(() => parseCase(rest)).toThrow(/missing verdict/);
     expect(() => parseCase({ ...gate1(), verdict: null })).toThrow(/verdict/);
-  });
-
-  it("index.json lists the stand-in case's own verdict", () => {
-    expect(read("index.json").cases[0].verdict).toBe(gate1().verdict.label);
   });
 
   it("rejects non-objects", () => {

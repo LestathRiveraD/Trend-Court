@@ -195,7 +195,7 @@ export interface IndexCase {
   variable: string;
   /** Bare file name inside `cases/`, e.g. `mexicali_temperature.json`. */
   file: string;
-  /** Verdict label, or `null` until the verdict module (#20) exists. */
+  /** Verdict label (`verdict.label` of the case); `null` only in a cache built before the verdict module (#20). */
   verdict: VerdictLabel | null;
   quality: { passed: boolean; verdict: string };
 }
