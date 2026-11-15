@@ -73,7 +73,7 @@ with the network off. After changing anything the cases are computed from (`tren
 first, then rebuild and commit the cache in its own commit:
 
 ```bash
-python scripts/build_cache.py      # about 10 s; refuses to run if those inputs have uncommitted changes
+python scripts/build_cache.py      # about 1 min (window sensitivity, 12 processes); refuses to run if those inputs have uncommitted changes
 git add site/public/cases && git commit -m "Rebuild case cache"
 ```
 
