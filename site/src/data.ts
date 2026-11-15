@@ -11,7 +11,7 @@
  */
 
 /** Must equal `SCHEMA_VERSION` in `trendcourt/case.py`. Bump both together. */
-export const CASE_SCHEMA_VERSION = 2;
+export const CASE_SCHEMA_VERSION = 3;
 /** Version of the `index.json` layout written by the cache build (#21). */
 export const INDEX_SCHEMA_VERSION = 1;
 
@@ -154,6 +154,30 @@ export interface Autocorrelation {
   r1_detrended: number;
 }
 
+/** Window sensitivity (`examiner.windows`, issue #39): the trend over every window of whole years. */
+export interface Windows {
+  /** Shortest window, in whole calendar years (15). */
+  min_years: number;
+  /** Significance level of `same_significance_share` (`alpha_moderate`). */
+  alpha: number;
+  /** The full record's Theil–Sen slope per decade and Hamed–Rao p, the reference of both shares. */
+  full_slope_per_decade: number;
+  full_p: number;
+  /** Every start/end pair at least `min_years` long. */
+  n_windows: number;
+  /** Windows that passed the quality gate and both tests; the shares count only these. */
+  n_tested: number;
+  /** Share of tested windows whose slope has the full record's sign; `null` when none was tested. */
+  same_sign_share: number | null;
+  /** Share of tested windows whose p is on the same side of `alpha` as the full record's. */
+  same_significance_share: number | null;
+  start_years: number[];
+  end_years: number[];
+  /** `slope[i][j]` (per decade) and `p[i][j]` for `start_years[i]` to `end_years[j]`; `null` if too short or untested. */
+  slope: (number | null)[][];
+  p: (number | null)[][];
+}
+
 export interface CaseFile {
   schema_version: number;
   region: string;
@@ -169,6 +193,8 @@ export interface CaseFile {
   consistency: Consistency | null;
   /** `null` when the record fails the quality gate. */
   autocorrelation: Autocorrelation | null;
+  /** `null` when the record fails the quality gate. */
+  windows: Windows | null;
   verdict: Verdict;
 }
 
@@ -257,6 +283,7 @@ const CASE_KEYS = [
   "mk_seasonal",
   "consistency",
   "autocorrelation",
+  "windows",
   "verdict",
 ] as const;
 const SERIES_KEYS = ["months", "time", "raw", "anomaly", "n_points", "climatology"] as const;
@@ -282,8 +309,16 @@ export function parseCase(raw: unknown, what = "case file"): CaseFile {
   if (!isObject(raw.verdict)) throw new CaseDataError(`${what}: verdict is not an object`);
   const quality = raw.quality as Json;
   if (quality.passed === true) {
-    for (const block of ["theil_sen", "mk_hamed_rao", "mk_seasonal", "consistency", "autocorrelation"] as const) {
+    for (const block of ["theil_sen", "mk_hamed_rao", "mk_seasonal", "consistency", "autocorrelation", "windows"] as const) {
       if (!isObject(raw[block])) throw new CaseDataError(`${what}: quality passed but ${block} is missing`);
+    }
+    const w = raw.windows as Json;
+    const rows = w.start_years, cols = w.end_years;
+    const grid = (m: unknown) =>
+      Array.isArray(m) && Array.isArray(rows) && Array.isArray(cols) && m.length === rows.length &&
+      m.every((r) => Array.isArray(r) && r.length === cols.length);
+    if (!grid(w.slope) || !grid(w.p)) {
+      throw new CaseDataError(`${what}: windows.slope and windows.p must be start_years × end_years matrices`);
     }
   }
   return raw as unknown as CaseFile;

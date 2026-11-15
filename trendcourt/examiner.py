@@ -22,6 +22,7 @@ KNMI check)::
 from __future__ import annotations
 
 import math
+import os
 from dataclasses import asdict, dataclass
 
 import numpy as np
@@ -403,4 +404,132 @@ def consistency(mk: MKResult, smk: MKResult) -> dict:
         "smk_significant": smk.h,
         "same_significance": same_significance,
         "agree": same_sign and same_significance,
+    }
+
+
+# --- Window sensitivity (project.md §3, step 7) -----------------------------
+
+
+def _window_stats(chunk: list[tuple[np.ndarray, np.ndarray]]) -> list[tuple[float, float] | None]:
+    """``(slope per decade, Hamed–Rao p)`` for each ``(t, y)`` window, with the
+    full-record wrappers and defaults; ``None`` where a test cannot run."""
+    out: list[tuple[float, float] | None] = []
+    for t, y in chunk:
+        try:
+            out.append((theil_sen(t, y).slope_per_decade, mk_hamed_rao(y).p))
+        except ValueError:
+            out.append(None)
+    return out
+
+
+def _whole_years(index: pd.DatetimeIndex) -> list[int]:
+    """Calendar years whose 12 months are all in ``index`` (values may be NaN)."""
+    months = pd.Series(1, index=index)
+    per_year = months.groupby([index.year, index.month]).size().groupby(level=0).size()
+    return [int(y) for y, n in per_year.items() if n == 12]
+
+
+def windows(t_years, anomalies: pd.Series, min_years: int = 15, alpha: float = 0.05,
+            workers: int | None = None) -> dict:
+    """Window sensitivity: the trend over every start / end year pair.
+
+    For every pair of whole calendar years ``(start, end)`` with
+    ``end - start + 1 >= min_years``, takes the months of those years and
+    runs the same wrappers, with the same defaults, as the full record:
+    :func:`theil_sen` (slope per decade) and :func:`mk_hamed_rao`
+    (``lag=3``, its p). Nothing is reimplemented; ``workers`` processes
+    only share out the windows (``1`` runs them in this process, ``None``
+    uses every CPU), and the result does not depend on it.
+
+    ``anomalies`` is the deseasonalized monthly series (a pandas Series
+    with a ``DatetimeIndex``, as from ``clerk.prepare``) and ``t_years`` its
+    decimal-year times. A whole year is one whose 12 months are all in the
+    index. Each window must pass the Clerk's quality gate
+    (``clerk.quality_gate`` with ``min_years``, missing values counted
+    as there), and both tests must run; otherwise the window is ``None``
+    in the grid and left out of both shares.
+
+    The reference is the full input record: its Theil–Sen slope sign and
+    whether its Hamed–Rao p is below ``alpha`` (the verdict's
+    ``alpha_moderate``). Returns a plain dict for strict JSON:
+
+    * ``same_sign_share``: share of tested windows whose slope has the
+      full record's sign (``None`` when no window could be tested);
+    * ``same_significance_share``: share whose p is on the same side of
+      ``alpha`` as the full record's;
+    * ``n_windows``: every pair long enough; ``n_tested``: those in the
+      shares;
+    * ``start_years``, ``end_years`` and the ``slope`` (per decade) and
+      ``p`` matrices, ``slope[i][j]`` for ``start_years[i]`` to
+      ``end_years[j]``, ``None`` where the window is too short or untested;
+    * ``min_years``, ``alpha``, ``full_slope_per_decade``, ``full_p``.
+    """
+    from trendcourt import clerk  # no cycle: the Clerk does not import the Examiner
+
+    if isinstance(min_years, bool) or not isinstance(min_years, (int, np.integer)) or min_years < 1:
+        raise ValueError(f"min_years must be a positive integer, got {min_years!r}")
+    _check_alpha(alpha)
+    if not isinstance(anomalies, pd.Series) or not isinstance(anomalies.index, pd.DatetimeIndex):
+        raise TypeError("anomalies must be a pandas Series with a DatetimeIndex")
+    t = np.asarray(t_years, dtype=float)
+    if t.shape != (len(anomalies),):
+        raise ValueError(f"t_years must have one value per month; got {t.shape} for {len(anomalies)}")
+    y = anomalies.to_numpy(dtype=float)
+    full_slope = theil_sen(t, y).slope_per_decade
+    full_p = mk_hamed_rao(y).p
+    full_sign, full_significant = _sign(full_slope), full_p < alpha
+
+    years = _whole_years(anomalies.index)
+    start_years = [s for s in years if s + min_years - 1 <= years[-1]] if years else []
+    end_years = [e for e in years if e - min_years + 1 >= years[0]] if years else []
+    year_of = anomalies.index.year.to_numpy()
+
+    pairs, jobs = [], []
+    for s in start_years:
+        for e in end_years:
+            if e - s + 1 < min_years:
+                continue
+            pairs.append((s, e))
+            keep = (year_of >= s) & (year_of <= e)
+            if clerk.quality_gate(anomalies[keep], min_years=min_years).passed:
+                jobs.append(((s, e), (t[keep], y[keep])))
+
+    if workers is None:
+        workers = os.cpu_count() or 1
+    data = [job for _, job in jobs]
+    if workers <= 1 or len(data) < 2:
+        results = _window_stats(data)
+    else:
+        from concurrent.futures import ProcessPoolExecutor
+
+        size = -(-len(data) // (workers * 4))
+        chunks = [data[i:i + size] for i in range(0, len(data), size)]
+        with ProcessPoolExecutor(max_workers=min(workers, len(chunks))) as pool:
+            results = [r for part in pool.map(_window_stats, chunks) for r in part]
+    tested = {key: r for (key, _), r in zip(jobs, results) if r is not None}
+
+    col = {e: j for j, e in enumerate(end_years)}
+    row = {s: i for i, s in enumerate(start_years)}
+    slope = [[None] * len(end_years) for _ in start_years]
+    p = [[None] * len(end_years) for _ in start_years]
+    same_sign = same_sig = 0
+    for (s, e), (b, pv) in tested.items():
+        slope[row[s]][col[e]] = float(b) if math.isfinite(b) else None
+        p[row[s]][col[e]] = float(pv)
+        same_sign += _sign(b) == full_sign
+        same_sig += (pv < alpha) == full_significant
+    n = len(tested)
+    return {
+        "min_years": int(min_years),
+        "alpha": float(alpha),
+        "full_slope_per_decade": float(full_slope),
+        "full_p": float(full_p),
+        "n_windows": len(pairs),
+        "n_tested": n,
+        "same_sign_share": same_sign / n if n else None,
+        "same_significance_share": same_sig / n if n else None,
+        "start_years": start_years,
+        "end_years": end_years,
+        "slope": slope,
+        "p": p,
     }

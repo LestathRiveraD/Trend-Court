@@ -343,10 +343,13 @@ def mexicali():
 
 
 def test_examine_adds_the_verdict_block(mexicali):
-    assert mexicali["schema_version"] == case_module.SCHEMA_VERSION == 2
+    assert mexicali["schema_version"] == case_module.SCHEMA_VERSION == 3
     assert mexicali["verdict"] == verdict.decide(mexicali, thresholds.load())
     assert mexicali["verdict"]["label"] == "moderate" and mexicali["verdict"]["capped"]
     assert mexicali["verdict"]["band_max_verdict"] == "strong"
+    window = next(c for c in mexicali["verdict"]["checks"] if c["name"] == "window_agreement")
+    assert window["status"] == "pass"
+    assert window["value"] == mexicali["windows"]["same_sign_share"]
 
 
 def test_failed_quality_gate_gives_insufficient_record(monkeypatch):
@@ -362,3 +365,11 @@ def test_failed_quality_gate_gives_insufficient_record(monkeypatch):
     assert out["autocorrelation"] is None
     assert out["verdict"]["label"] == "insufficient_record"
     assert out["verdict"]["reason"] == "The record is too incomplete to test: test reason."
+
+
+def test_window_check_is_pending_when_no_window_was_tested():
+    c = make_case(witness=AGREEING_WITNESS)
+    c["windows"] = {"same_sign_share": None, "n_windows": 0, "n_tested": 0}
+    v = verdict.decide(c, TH)
+    assert checks(v)["window_agreement"]["status"] == "pending"
+    assert v["label"] == "moderate" and v["capped"]

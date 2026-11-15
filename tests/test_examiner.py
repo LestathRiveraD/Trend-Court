@@ -6,7 +6,7 @@ import pytest
 import pymannkendall as pmk
 from scipy import stats
 
-from trendcourt import examiner
+from trendcourt import clerk, examiner
 
 
 def random_series(n=240, seed=42):
@@ -474,3 +474,148 @@ def test_seasonal_requires_three_complete_years():
 def test_seasonal_rejects_constant_series():
     with pytest.raises(ValueError, match="non-positive or undefined"):
         examiner.mk_seasonal(monthly(np.ones(60)))
+
+
+# --- windows ----------------------------------------------------------------
+
+
+def monthly_anomalies(values, start="1981-01"):
+    """Anomalies as ``clerk.prepare`` gives them: a monthly Series and its mid-month decimal years."""
+    idx = pd.date_range(start, periods=len(values), freq="MS")
+    t = idx.year.to_numpy(dtype=float) + (idx.month.to_numpy(dtype=float) - 0.5) / 12
+    return t, pd.Series(np.asarray(values, dtype=float), index=idx)
+
+
+def trend_series(years=45, slope=0.03, noise=0.3, seed=7):
+    rng = np.random.default_rng(seed)
+    n = years * 12
+    return monthly_anomalies(slope * np.arange(n) / 12 + rng.normal(scale=noise, size=n))
+
+
+def test_windows_count_matches_hand_count():
+    t, y = trend_series(years=45)
+    w = examiner.windows(t, y)
+    by_hand = sum(1 for s in range(1981, 2026) for e in range(1981, 2026) if e - s + 1 >= 15)
+    assert by_hand == 496
+    assert w["n_windows"] == w["n_tested"] == by_hand
+    assert w["start_years"] == list(range(1981, 2012))
+    assert w["end_years"] == list(range(1995, 2026))
+    filled = sum(v is not None for row in w["slope"] for v in row)
+    assert filled == by_hand
+    assert sum(v is not None for row in w["p"] for v in row) == by_hand
+
+
+def test_windows_too_short_cells_are_null():
+    t, y = trend_series(years=20)
+    w = examiner.windows(t, y)
+    for i, s in enumerate(w["start_years"]):
+        for j, e in enumerate(w["end_years"]):
+            short = e - s + 1 < 15
+            assert (w["slope"][i][j] is None) == short
+            assert (w["p"][i][j] is None) == short
+
+
+def test_windows_full_record_cell_equals_full_record_tests():
+    t, y = trend_series(years=30)
+    w = examiner.windows(t, y)
+    ts, mk = examiner.theil_sen(t, y), examiner.mk_hamed_rao(y)
+    full = w["slope"][0][-1], w["p"][0][-1]
+    assert full == (ts.slope_per_decade, mk.p)
+    assert (w["full_slope_per_decade"], w["full_p"]) == (ts.slope_per_decade, mk.p)
+
+
+def test_windows_every_cell_uses_the_wrappers():
+    t, y = trend_series(years=18)
+    w = examiner.windows(t, y)
+    for i, s in enumerate(w["start_years"]):
+        for j, e in enumerate(w["end_years"]):
+            if w["slope"][i][j] is None:
+                continue
+            keep = (y.index.year >= s) & (y.index.year <= e)
+            assert w["slope"][i][j] == examiner.theil_sen(t[keep], y[keep]).slope_per_decade
+            assert w["p"][i][j] == examiner.mk_hamed_rao(y[keep]).p
+
+
+def test_windows_result_does_not_depend_on_workers():
+    t, y = trend_series(years=25)
+    assert examiner.windows(t, y, workers=1) == examiner.windows(t, y, workers=4)
+
+
+def test_strong_trend_has_full_window_agreement():
+    t, y = trend_series(years=45, slope=0.05, noise=0.2)
+    w = examiner.windows(t, y)
+    assert w["same_sign_share"] == 1.0
+    assert w["same_significance_share"] == 1.0
+
+
+def test_reversing_trend_has_low_window_agreement():
+    rng = np.random.default_rng(3)
+    n = 45 * 12
+    years = np.arange(n) / 12
+    tent = np.where(years < 22.5, 0.05 * years, 0.05 * (45 - years))
+    t, y = monthly_anomalies(tent + rng.normal(scale=0.2, size=n))
+    w = examiner.windows(t, y)
+    assert w["n_tested"] == 496
+    assert w["same_sign_share"] < 0.7
+
+
+def test_windows_failing_the_quality_gate_are_null_and_excluded():
+    t, y = trend_series(years=30)
+    y = y.copy()
+    y["1981-01":"1984-12"] = np.nan  # windows starting before 1985 have > 10% missing or < 15 years
+    w = examiner.windows(t, y)
+    for i, s in enumerate(w["start_years"]):
+        for j, e in enumerate(w["end_years"]):
+            if e - s + 1 < 15:
+                continue
+            keep = (y.index.year >= s) & (y.index.year <= e)
+            passed = clerk.quality_gate(y[keep], min_years=15).passed
+            assert (w["slope"][i][j] is not None) == passed
+    assert 0 < w["n_tested"] < w["n_windows"]
+    tested = [(i, j) for i, row in enumerate(w["slope"]) for j, v in enumerate(row) if v is not None]
+    full_sign = np.sign(w["full_slope_per_decade"])
+    expected = sum(np.sign(w["slope"][i][j]) == full_sign for i, j in tested) / len(tested)
+    assert w["same_sign_share"] == expected
+
+
+def test_windows_without_a_testable_window_have_no_share():
+    t, y = trend_series(years=14)
+    w = examiner.windows(t, y)
+    assert w["n_windows"] == w["n_tested"] == 0
+    assert w["same_sign_share"] is None and w["same_significance_share"] is None
+    json.dumps(w, allow_nan=False)
+
+
+def test_windows_skip_partial_years():
+    t, y = trend_series(years=17)
+    t, y = t[5:-3], y.iloc[5:-3]  # 1981-06 to 1997-09: whole years 1982 to 1996
+    w = examiner.windows(t, y)
+    assert w["start_years"] == [1982] and w["end_years"] == [1996]
+    keep = (y.index.year >= 1982) & (y.index.year <= 1996)
+    assert w["slope"] == [[examiner.theil_sen(t[keep], y[keep]).slope_per_decade]]
+
+
+def test_windows_is_strict_json_and_does_not_touch_input():
+    t, y = trend_series(years=20)
+    before = y.copy()
+    w = examiner.windows(t, y)
+    pd.testing.assert_series_equal(y, before)
+    assert json.loads(json.dumps(w, allow_nan=False)) == w
+
+
+@pytest.mark.parametrize("kwargs, exc", [
+    ({"min_years": 0}, ValueError), ({"min_years": True}, ValueError),
+    ({"alpha": 1.5}, ValueError),
+])
+def test_windows_rejects_bad_arguments(kwargs, exc):
+    t, y = trend_series(years=16)
+    with pytest.raises(exc):
+        examiner.windows(t, y, **kwargs)
+
+
+def test_windows_needs_a_monthly_series():
+    t, y = trend_series(years=16)
+    with pytest.raises(TypeError):
+        examiner.windows(t, y.to_numpy())
+    with pytest.raises(ValueError):
+        examiner.windows(t[:-1], y)
