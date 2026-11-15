@@ -1,4 +1,7 @@
 {
+  "autocorrelation": {
+    "r1_detrended": 0.07003010135005103
+  },
   "consistency": {
     "agree": true,
     "alpha": 0.05,
@@ -94,7 +97,7 @@
     "years_covered": 45.0
   },
   "region": "yucatan",
-  "schema_version": 1,
+  "schema_version": 2,
   "series": {
     "anomaly": [
       -1.1772635191799272,
@@ -2835,5 +2838,41 @@
     "t_end": 2025.9583333333333,
     "t_start": 1981.0416666666667
   },
-  "variable": "precipitation"
+  "variable": "precipitation",
+  "verdict": {
+    "band_max_verdict": "strong",
+    "capped": false,
+    "caveats": [
+      "interval_optimistic"
+    ],
+    "checks": [
+      {
+        "name": "hamed_rao_p",
+        "status": "fail",
+        "threshold": 0.05,
+        "value": 0.49755084112100545
+      },
+      {
+        "name": "mk_seasonal_consistency",
+        "status": "pass",
+        "threshold": null,
+        "value": true
+      },
+      {
+        "name": "window_agreement",
+        "status": "pending",
+        "threshold": 0.8,
+        "value": null
+      },
+      {
+        "name": "witness_agreement",
+        "status": "pending",
+        "threshold": null,
+        "value": null
+      }
+    ],
+    "label": "inconclusive",
+    "no_trend_margin": 0.08718804763758967,
+    "reason": "The test cannot tell this trend from noise (p = 0.498), and this record's noise makes its interval too optimistic to rule out a trend."
+  }
 }

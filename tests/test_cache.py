@@ -8,8 +8,9 @@ import subprocess
 
 import pytest
 
-from trendcourt import cache, clerk
+from trendcourt import cache, clerk, thresholds
 from trendcourt import case as case_module
+from trendcourt import verdict as verdict_module
 
 REPO = clerk.REPO_ROOT
 DATA_TS = REPO / "site" / "src" / "data.ts"
@@ -66,7 +67,9 @@ def test_index_contract(built):
             "passed": case["quality"]["passed"],
             "verdict": case["quality"]["verdict"],
         }
-        assert entry["verdict"] == (case["verdict"]["label"] if case.get("verdict") else None)
+        # #20: every case carries a verdict, and the index lists its label.
+        assert entry["verdict"] == case["verdict"]["label"]
+        assert entry["verdict"] in verdict_module.LABELS
 
 
 def test_failed_quality_case_is_still_written(monkeypatch):
@@ -76,8 +79,10 @@ def test_failed_quality_case_is_still_written(monkeypatch):
         out = real(region, variable)
         if (region, variable) == ("sahel", "precipitation"):
             out["quality"] = {**out["quality"], "passed": False, "verdict": "insufficient record"}
-            for k in ("theil_sen", "ols", "mk_hamed_rao", "mk_seasonal", "consistency"):
+            for k in ("theil_sen", "ols", "mk_hamed_rao", "mk_seasonal", "consistency",
+                      "autocorrelation"):
                 out[k] = None
+            out["verdict"] = verdict_module.decide(out, thresholds.load())
         return out
 
     monkeypatch.setattr(case_module, "examine", failing)
@@ -86,6 +91,7 @@ def test_failed_quality_case_is_still_written(monkeypatch):
     entry = next(c for c in json.loads(files["index.json"])["cases"]
                  if c["file"] == "sahel_precipitation.json")
     assert entry["quality"] == {"passed": False, "verdict": "insufficient record"}
+    assert entry["verdict"] == "insufficient_record"
     assert json.loads(files["sahel_precipitation.json"])["theil_sen"] is None
 
 

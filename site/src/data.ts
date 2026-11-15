@@ -11,7 +11,7 @@
  */
 
 /** Must equal `SCHEMA_VERSION` in `trendcourt/case.py`. Bump both together. */
-export const CASE_SCHEMA_VERSION = 1;
+export const CASE_SCHEMA_VERSION = 2;
 /** Version of the `index.json` layout written by the cache build (#21). */
 export const INDEX_SCHEMA_VERSION = 1;
 
@@ -117,7 +117,7 @@ export interface Consistency {
   same_significance: boolean;
 }
 
-/** Provisional, from issue #20 (verdict module v0); not yet in the case JSON. */
+/** Verdict labels of `trendcourt/verdict.py` (`LABELS`). */
 export type VerdictLabel =
   | "strong_evidence"
   | "moderate"
@@ -135,9 +135,23 @@ export interface VerdictCheck {
 
 export interface Verdict {
   label: VerdictLabel;
+  /** hamed_rao_p, mk_seasonal_consistency, window_agreement, witness_agreement, in that order. */
   checks: VerdictCheck[];
+  /** True when only pending checks (windows, witness B) stopped a Strong label. */
   capped: boolean;
+  /** One plain sentence for the card. */
   reason: string;
+  /** `max_verdict` of the record's autocorrelation band; `null` above the benchmark grid or when the record failed the quality gate. */
+  band_max_verdict: "strong" | "moderate" | "inconclusive" | null;
+  /** No-trend margin per decade, in the variable's units; `null` when the record failed the quality gate. */
+  no_trend_margin: number | null;
+  /** `noise_caveats` flags; non-empty means the card prints `noise_model_check.card_text`. */
+  caveats: ("fpr_optimistic" | "interval_optimistic")[];
+}
+
+export interface Autocorrelation {
+  /** Lag-1 autocorrelation of the anomalies after removing the Theil–Sen line. */
+  r1_detrended: number;
 }
 
 export interface CaseFile {
@@ -153,8 +167,9 @@ export interface CaseFile {
   mk_hamed_rao: MannKendall | null;
   mk_seasonal: MannKendall | null;
   consistency: Consistency | null;
-  /** Added by #20 with the next schema version; absent in schema 1 files. */
-  verdict?: Verdict | null;
+  /** `null` when the record fails the quality gate. */
+  autocorrelation: Autocorrelation | null;
+  verdict: Verdict;
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +195,7 @@ export interface IndexCase {
   variable: string;
   /** Bare file name inside `cases/`, e.g. `mexicali_temperature.json`. */
   file: string;
-  /** Verdict label, or `null` until the verdict module (#20) exists. */
+  /** Verdict label (`verdict.label` of the case); `null` only in a cache built before the verdict module (#20). */
   verdict: VerdictLabel | null;
   quality: { passed: boolean; verdict: string };
 }
@@ -241,6 +256,8 @@ const CASE_KEYS = [
   "mk_hamed_rao",
   "mk_seasonal",
   "consistency",
+  "autocorrelation",
+  "verdict",
 ] as const;
 const SERIES_KEYS = ["months", "time", "raw", "anomaly", "n_points", "climatology"] as const;
 const SAFE_FILE = /^[a-z0-9_]+\.json$/;
@@ -262,9 +279,10 @@ export function parseCase(raw: unknown, what = "case file"): CaseFile {
       throw new CaseDataError(`${what}: series.${k} must be an array of length ${n} (same as series.months)`);
     }
   }
+  if (!isObject(raw.verdict)) throw new CaseDataError(`${what}: verdict is not an object`);
   const quality = raw.quality as Json;
   if (quality.passed === true) {
-    for (const block of ["theil_sen", "mk_hamed_rao", "mk_seasonal", "consistency"] as const) {
+    for (const block of ["theil_sen", "mk_hamed_rao", "mk_seasonal", "consistency", "autocorrelation"] as const) {
       if (!isObject(raw[block])) throw new CaseDataError(`${what}: quality passed but ${block} is missing`);
     }
   }

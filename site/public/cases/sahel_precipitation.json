@@ -1,4 +1,7 @@
 {
+  "autocorrelation": {
+    "r1_detrended": 0.16327779275822799
+  },
   "consistency": {
     "agree": false,
     "alpha": 0.05,
@@ -94,7 +97,7 @@
     "years_covered": 45.0
   },
   "region": "sahel",
-  "schema_version": 1,
+  "schema_version": 2,
   "series": {
     "anomaly": [
       -0.0037301963144643698,
@@ -2835,5 +2838,39 @@
     "t_end": 2025.9583333333333,
     "t_start": 1981.0416666666667
   },
-  "variable": "precipitation"
+  "variable": "precipitation",
+  "verdict": {
+    "band_max_verdict": "strong",
+    "capped": false,
+    "caveats": [],
+    "checks": [
+      {
+        "name": "hamed_rao_p",
+        "status": "pass",
+        "threshold": 0.05,
+        "value": 0.015514978664413315
+      },
+      {
+        "name": "mk_seasonal_consistency",
+        "status": "fail",
+        "threshold": null,
+        "value": false
+      },
+      {
+        "name": "window_agreement",
+        "status": "pending",
+        "threshold": 0.8,
+        "value": null
+      },
+      {
+        "name": "witness_agreement",
+        "status": "pending",
+        "threshold": null,
+        "value": null
+      }
+    ],
+    "label": "moderate",
+    "no_trend_margin": 0.04400513270498365,
+    "reason": "The trend is significant (p = 0.0155 < 0.05), but p is not below 0.01 as Strong requires and the seasonal-test consistency check failed."
+  }
 }

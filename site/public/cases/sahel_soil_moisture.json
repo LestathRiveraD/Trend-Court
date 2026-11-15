@@ -1,4 +1,7 @@
 {
+  "autocorrelation": {
+    "r1_detrended": 0.8070596769888685
+  },
   "consistency": {
     "agree": true,
     "alpha": 0.05,
@@ -94,7 +97,7 @@
     "years_covered": 45.0
   },
   "region": "sahel",
-  "schema_version": 1,
+  "schema_version": 2,
   "series": {
     "anomaly": [
       0.021106306431659366,
@@ -2835,5 +2838,39 @@
     "t_end": 2025.9583333333333,
     "t_start": 1981.0416666666667
   },
-  "variable": "soil_moisture"
+  "variable": "soil_moisture",
+  "verdict": {
+    "band_max_verdict": "inconclusive",
+    "capped": false,
+    "caveats": [],
+    "checks": [
+      {
+        "name": "hamed_rao_p",
+        "status": "fail",
+        "threshold": null,
+        "value": 5.537216105899745e-05
+      },
+      {
+        "name": "mk_seasonal_consistency",
+        "status": "pass",
+        "threshold": null,
+        "value": true
+      },
+      {
+        "name": "window_agreement",
+        "status": "pending",
+        "threshold": 0.8,
+        "value": null
+      },
+      {
+        "name": "witness_agreement",
+        "status": "pending",
+        "threshold": null,
+        "value": null
+      }
+    ],
+    "label": "inconclusive",
+    "no_trend_margin": 0.005,
+    "reason": "The p-value is small (p = 5.54e-05), but this record is too autocorrelated for that p-value to count as evidence."
+  }
 }

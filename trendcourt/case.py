@@ -19,9 +19,10 @@ import sys
 
 import pandas as pd
 
-from trendcourt import clerk, examiner
+from trendcourt import benchmark, clerk, examiner, thresholds, verdict
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+"""Version 2: ``autocorrelation`` and ``verdict`` blocks (verdict module v0, issue #20)."""
 
 
 def _month(ts: pd.Timestamp | None) -> str | None:
@@ -85,6 +86,12 @@ def examine(region: str, variable: str) -> dict:
     allow_nan=False)`` accepts. If the record fails the quality gate the
     statistics are not run and their keys are ``None``; the quality
     block says why.
+
+    Then ``autocorrelation.r1_detrended``, the lag-1 autocorrelation of the
+    anomalies after removing the Theil–Sen line
+    (``benchmark.detrended_r1``, the ``r1`` the thresholds' band rule
+    reads), and ``verdict``, :func:`trendcourt.verdict.decide` on the case
+    with ``thresholds.load()``. Neither changes any other number.
     """
     prepared = clerk.prepare(region, variable)
     quality = prepared.quality
@@ -108,20 +115,25 @@ def examine(region: str, variable: str) -> dict:
         "mk_hamed_rao": None,
         "mk_seasonal": None,
         "consistency": None,
+        "autocorrelation": None,
     }
     if not quality.passed:
+        case["verdict"] = verdict.decide(case, thresholds.load())
         return case
 
     t, anomalies = prepared.time, prepared.anomalies
     mk = examiner.mk_hamed_rao(anomalies)
     smk = examiner.mk_seasonal(prepared.raw)
+    ts = examiner.theil_sen(t, anomalies)
     case.update(
-        theil_sen=examiner.theil_sen(t, anomalies).to_dict(),
+        theil_sen=ts.to_dict(),
         ols=examiner.ols(t, anomalies).to_dict(),
         mk_hamed_rao=mk.to_dict(),
         mk_seasonal=smk.to_dict(),
         consistency=examiner.consistency(mk, smk),
+        autocorrelation={"r1_detrended": benchmark.detrended_r1(t, anomalies, ts)},
     )
+    case["verdict"] = verdict.decide(case, thresholds.load())
     return case
 
 

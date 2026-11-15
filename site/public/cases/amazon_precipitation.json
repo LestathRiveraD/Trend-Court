@@ -1,4 +1,7 @@
 {
+  "autocorrelation": {
+    "r1_detrended": 0.32770164501883375
+  },
   "consistency": {
     "agree": true,
     "alpha": 0.05,
@@ -94,7 +97,7 @@
     "years_covered": 45.0
   },
   "region": "amazon",
-  "schema_version": 1,
+  "schema_version": 2,
   "series": {
     "anomaly": [
       1.6521812871688866,
@@ -2835,5 +2838,41 @@
     "t_end": 2025.9583333333333,
     "t_start": 1981.0416666666667
   },
-  "variable": "precipitation"
+  "variable": "precipitation",
+  "verdict": {
+    "band_max_verdict": "strong",
+    "capped": true,
+    "caveats": [
+      "interval_optimistic"
+    ],
+    "checks": [
+      {
+        "name": "hamed_rao_p",
+        "status": "pass",
+        "threshold": 0.01,
+        "value": 1.7714320196260402e-05
+      },
+      {
+        "name": "mk_seasonal_consistency",
+        "status": "pass",
+        "threshold": null,
+        "value": true
+      },
+      {
+        "name": "window_agreement",
+        "status": "pending",
+        "threshold": 0.8,
+        "value": null
+      },
+      {
+        "name": "witness_agreement",
+        "status": "pending",
+        "threshold": null,
+        "value": null
+      }
+    ],
+    "label": "moderate",
+    "no_trend_margin": 0.1777392816523205,
+    "reason": "The trend is significant (p = 1.77e-05 < 0.01), but it stays Moderate until the window agreement and witness agreement checks are done."
+  }
 }

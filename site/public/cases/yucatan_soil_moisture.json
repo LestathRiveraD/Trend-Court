@@ -1,4 +1,7 @@
 {
+  "autocorrelation": {
+    "r1_detrended": 0.6757626864688572
+  },
   "consistency": {
     "agree": true,
     "alpha": 0.05,
@@ -94,7 +97,7 @@
     "years_covered": 45.0
   },
   "region": "yucatan",
-  "schema_version": 1,
+  "schema_version": 2,
   "series": {
     "anomaly": [
       -0.02484410832481665,
@@ -2835,5 +2838,39 @@
     "t_end": 2025.9583333333333,
     "t_start": 1981.0416666666667
   },
-  "variable": "soil_moisture"
+  "variable": "soil_moisture",
+  "verdict": {
+    "band_max_verdict": "moderate",
+    "capped": false,
+    "caveats": [],
+    "checks": [
+      {
+        "name": "hamed_rao_p",
+        "status": "fail",
+        "threshold": 0.01,
+        "value": 0.6880939422304451
+      },
+      {
+        "name": "mk_seasonal_consistency",
+        "status": "pass",
+        "threshold": null,
+        "value": true
+      },
+      {
+        "name": "window_agreement",
+        "status": "pending",
+        "threshold": 0.8,
+        "value": null
+      },
+      {
+        "name": "witness_agreement",
+        "status": "pending",
+        "threshold": null,
+        "value": null
+      }
+    ],
+    "label": "inconclusive",
+    "no_trend_margin": 0.005,
+    "reason": "The test cannot tell this trend from noise (p = 0.688), and the slope's interval, widened for autocorrelation, reaches past \u00b10.005 per decade, so a trend that size is not ruled out."
+  }
 }

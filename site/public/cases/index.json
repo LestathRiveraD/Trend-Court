@@ -3,7 +3,7 @@
     "accessed": [
       "2026-11-14"
     ],
-    "commit": "217a15953d257d8a16513abf9c4442842386a9db"
+    "commit": "76c3ad861e2f34e04d2e590e524a394feeaf629e"
   },
   "cases": [
     {
@@ -14,7 +14,7 @@
       },
       "region": "mexicali",
       "variable": "temperature",
-      "verdict": null
+      "verdict": "moderate"
     },
     {
       "file": "mexicali_precipitation.json",
@@ -24,7 +24,7 @@
       },
       "region": "mexicali",
       "variable": "precipitation",
-      "verdict": null
+      "verdict": "moderate"
     },
     {
       "file": "mexicali_soil_moisture.json",
@@ -34,7 +34,7 @@
       },
       "region": "mexicali",
       "variable": "soil_moisture",
-      "verdict": null
+      "verdict": "inconclusive"
     },
     {
       "file": "mexico_city_temperature.json",
@@ -44,7 +44,7 @@
       },
       "region": "mexico_city",
       "variable": "temperature",
-      "verdict": null
+      "verdict": "moderate"
     },
     {
       "file": "mexico_city_precipitation.json",
@@ -54,7 +54,7 @@
       },
       "region": "mexico_city",
       "variable": "precipitation",
-      "verdict": null
+      "verdict": "no_detectable_trend"
     },
     {
       "file": "mexico_city_soil_moisture.json",
@@ -64,7 +64,7 @@
       },
       "region": "mexico_city",
       "variable": "soil_moisture",
-      "verdict": null
+      "verdict": "inconclusive"
     },
     {
       "file": "yucatan_temperature.json",
@@ -74,7 +74,7 @@
       },
       "region": "yucatan",
       "variable": "temperature",
-      "verdict": null
+      "verdict": "moderate"
     },
     {
       "file": "yucatan_precipitation.json",
@@ -84,7 +84,7 @@
       },
       "region": "yucatan",
       "variable": "precipitation",
-      "verdict": null
+      "verdict": "inconclusive"
     },
     {
       "file": "yucatan_soil_moisture.json",
@@ -94,7 +94,7 @@
       },
       "region": "yucatan",
       "variable": "soil_moisture",
-      "verdict": null
+      "verdict": "inconclusive"
     },
     {
       "file": "sahel_temperature.json",
@@ -104,7 +104,7 @@
       },
       "region": "sahel",
       "variable": "temperature",
-      "verdict": null
+      "verdict": "moderate"
     },
     {
       "file": "sahel_precipitation.json",
@@ -114,7 +114,7 @@
       },
       "region": "sahel",
       "variable": "precipitation",
-      "verdict": null
+      "verdict": "moderate"
     },
     {
       "file": "sahel_soil_moisture.json",
@@ -124,7 +124,7 @@
       },
       "region": "sahel",
       "variable": "soil_moisture",
-      "verdict": null
+      "verdict": "inconclusive"
     },
     {
       "file": "amazon_temperature.json",
@@ -134,7 +134,7 @@
       },
       "region": "amazon",
       "variable": "temperature",
-      "verdict": null
+      "verdict": "moderate"
     },
     {
       "file": "amazon_precipitation.json",
@@ -144,7 +144,7 @@
       },
       "region": "amazon",
       "variable": "precipitation",
-      "verdict": null
+      "verdict": "moderate"
     },
     {
       "file": "amazon_soil_moisture.json",
@@ -154,7 +154,7 @@
       },
       "region": "amazon",
       "variable": "soil_moisture",
-      "verdict": null
+      "verdict": "inconclusive"
     },
     {
       "file": "iberia_temperature.json",
@@ -164,7 +164,7 @@
       },
       "region": "iberia",
       "variable": "temperature",
-      "verdict": null
+      "verdict": "moderate"
     },
     {
       "file": "iberia_precipitation.json",
@@ -174,7 +174,7 @@
       },
       "region": "iberia",
       "variable": "precipitation",
-      "verdict": null
+      "verdict": "inconclusive"
     },
     {
       "file": "iberia_soil_moisture.json",
@@ -184,7 +184,7 @@
       },
       "region": "iberia",
       "variable": "soil_moisture",
-      "verdict": null
+      "verdict": "inconclusive"
     }
   ],
   "regions": [
