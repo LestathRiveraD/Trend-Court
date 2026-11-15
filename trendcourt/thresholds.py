@@ -13,11 +13,16 @@ The file holds
 * ``no_trend_margin``: per variable, in the variable's units per decade.
   "No detectable trend" is allowed only when the Hamed–Rao test is not
   significant at ``alpha_moderate`` *and* the AR(1)-widened Theil–Sen
-  interval (:func:`widened_interval`) lies inside ``[-margin, +margin]``.
+  interval (:func:`widened_interval`) lies inside ``[-margin, +margin]``,
+  for records inside the benchmarked autocorrelation range
+  (:func:`no_trend_allowed`).
+* ``interval_widening``: how that interval is widened; ``method`` must
+  be ``"ar1"``, the only one implemented.
 * ``fpr_policy`` and ``autocorrelation_bands``: the largest false-positive
   rate each verdict may carry, and, for each range of lag-1
   autocorrelation, the verdict cap and the Moderate cut-off that follow
   from ``docs/benchmark/fpr.json`` (:func:`derive_bands` rebuilds them).
+  ``fpr_policy.test`` must be ``"hamed_rao"``, the test the bands use.
 """
 
 from __future__ import annotations
@@ -36,6 +41,9 @@ VERDICT_ORDER = ("inconclusive", "moderate", "strong")
 
 TEST = "hamed_rao"
 """The significance test the verdict uses (``project.md`` §3, step 6)."""
+
+WIDENING_METHOD = "ar1"
+"""The interval widening :func:`widening_factor` implements."""
 
 REQUIRED_KEYS = ("schema_version", "source", "alpha_strong", "alpha_moderate",
                  "window_agreement_strong", "no_trend_margin", "no_trend_margin_units",
@@ -108,6 +116,20 @@ def _check(th: dict) -> dict:
         raise ValueError(f"need 0 < alpha_strong < alpha_moderate < 1, got {a_s}, {a_m}")
     if not (0 < th["window_agreement_strong"] <= 1):
         raise ValueError("window_agreement_strong must be in (0, 1]")
+    policy = th["fpr_policy"]
+    for key in ("max_fpr_strong", "max_fpr_moderate"):
+        v = policy.get(key)
+        if not (isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1):
+            raise ValueError(f"fpr_policy.{key} must be a number in [0, 1], got {v!r}")
+    if policy["max_fpr_strong"] > policy["max_fpr_moderate"]:
+        raise ValueError("need fpr_policy.max_fpr_strong <= fpr_policy.max_fpr_moderate, got "
+                         f"{policy['max_fpr_strong']}, {policy['max_fpr_moderate']}")
+    if policy.get("test") != TEST:
+        raise ValueError(f"fpr_policy.test must be {TEST!r} (the only test derive_bands uses), "
+                         f"got {policy.get('test')!r}")
+    if th["interval_widening"].get("method") != WIDENING_METHOD:
+        raise ValueError(f"interval_widening.method must be {WIDENING_METHOD!r} (the only one "
+                         f"widening_factor implements), got {th['interval_widening'].get('method')!r}")
     margins = th["no_trend_margin"]
     if set(margins) != set(th["no_trend_margin_units"]):
         raise ValueError("no_trend_margin and no_trend_margin_units must name the same variables")
@@ -191,14 +213,29 @@ def no_trend_allowed(variable: str, slope: float, low: float, high: float, r1: f
                      hr_p: float, thresholds: dict | None = None) -> bool:
     """Whether the evidence supports "No detectable trend".
 
-    True only when the Hamed–Rao test is not significant at
-    ``alpha_moderate`` and the widened interval lies inside
-    ``[-no_trend_margin, +no_trend_margin]`` for ``variable`` (same units,
-    per decade, as the slope and interval passed in).
+    True only when ``r1`` is inside the benchmarked bands
+    (:func:`band_for` is not ``None``), the Hamed–Rao test is not
+    significant at ``alpha_moderate``, and the widened interval lies
+    inside ``[-no_trend_margin, +no_trend_margin]`` for ``variable``
+    (same units, per decade, as the slope and interval passed in).
+
+    * ``r1`` above the benchmark grid (``band_for`` is ``None``, so above
+      0.9 with the committed bands): always False. The AR(1) widening was
+      checked only up to ``phi = 0.9`` (``docs/benchmark.md``, Table 3),
+      so the widened interval cannot be trusted there; the verdict is
+      Inconclusive.
+    * Inside the benchmarked bands, including the band capped at
+      Inconclusive for significance claims ((0.8, 0.9] with the committed
+      bands), "No detectable trend" stays allowed. That cap concerns the
+      false-positive rate of the significance test, not the interval; the
+      widening factor matches the simulated coverage up to ``phi = 0.9``
+      and is slightly conservative there (4.36 against the 4.17 needed).
     """
     th = load() if thresholds is None else thresholds
     if variable not in th["no_trend_margin"]:
         raise ValueError(f"no no_trend_margin for variable {variable!r}")
+    if band_for(r1, th) is None:
+        return False
     m = th["no_trend_margin"][variable]
     lo, hi = widened_interval(slope, low, high, r1)
     return hr_p >= th["alpha_moderate"] and -m <= lo and hi <= m

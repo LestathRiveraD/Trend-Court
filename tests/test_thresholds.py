@@ -130,6 +130,29 @@ def test_no_trend_needs_nonsignificance_and_widened_interval_inside_margin(th):
         thresholds.no_trend_allowed("wind", 0.0, -0.01, 0.01, 0.0, 0.5, th)
 
 
+def test_no_trend_never_outside_the_benchmark(th):
+    """r1 above the grid: band_for is None, so never "no trend", however narrow
+    the interval (the widening was only checked up to phi = 0.9)."""
+    top = th["autocorrelation_bands"][-1]["r1_max"]
+    assert top == 0.9
+    for r1 in (0.9000001, 0.95, 0.999, 1.0, 1.5):
+        assert thresholds.band_for(r1, th) is None
+        assert not thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, r1, 0.5, th)
+    with pytest.raises(ValueError):
+        thresholds.no_trend_allowed("temperature", 0.0, -0.01, 0.01, math.nan, 0.5, th)
+
+
+def test_no_trend_still_allowed_in_the_inconclusive_capped_band(th):
+    """(0.8, 0.9] is capped at Inconclusive for significance, but the no-trend
+    rule rests on the widened interval, which is checked up to phi = 0.9."""
+    assert thresholds.band_for(0.85, th)["max_verdict"] == "inconclusive"
+    f = thresholds.widening_factor(0.85)  # about 3.51
+    assert thresholds.no_trend_allowed("temperature", 0.0, -0.02, 0.02, 0.85, 0.5, th)
+    assert 0.02 * f < 0.1
+    assert thresholds.no_trend_allowed("temperature", 0.0, -0.02, 0.02, 0.9, 0.5, th)
+    assert not thresholds.no_trend_allowed("temperature", 0.0, -0.03, 0.03, 0.85, 0.5, th)
+
+
 # --- schema checks ---------------------------------------------------------------
 
 
@@ -150,6 +173,19 @@ def _broken(th, change):
     (lambda t: t["autocorrelation_bands"][0].update(max_verdict="certain"), "unknown max_verdict"),
     (lambda t: t["autocorrelation_bands"][0].update(moderate_alpha=0.02), "moderate_alpha must be"),
     (lambda t: t["autocorrelation_bands"][3].update(moderate_alpha=0.01), "inconclusive band"),
+    (lambda t: t.pop("fpr_policy"), "missing"),
+    (lambda t: t.pop("interval_widening"), "missing"),
+    (lambda t: t["fpr_policy"].pop("max_fpr_strong"), "max_fpr_strong must be"),
+    (lambda t: t["fpr_policy"].pop("max_fpr_moderate"), "max_fpr_moderate must be"),
+    (lambda t: t["fpr_policy"].update(max_fpr_moderate="0.1"), "max_fpr_moderate must be"),
+    (lambda t: t["fpr_policy"].update(max_fpr_strong=1.5), "max_fpr_strong must be"),
+    (lambda t: t["fpr_policy"].update(max_fpr_strong=0.1, max_fpr_moderate=0.05),
+     "max_fpr_strong <= fpr_policy.max_fpr_moderate"),
+    (lambda t: t["fpr_policy"].update(test="seasonal"), "fpr_policy.test must be 'hamed_rao'"),
+    (lambda t: t["fpr_policy"].pop("test"), "fpr_policy.test must be 'hamed_rao'"),
+    (lambda t: t["interval_widening"].update(method="block_bootstrap"),
+     "interval_widening.method must be 'ar1'"),
+    (lambda t: t["interval_widening"].pop("method"), "interval_widening.method must be 'ar1'"),
 ])
 def test_check_rejects_broken_files(th, tmp_path, change, match):
     path = tmp_path / "t.json"
@@ -180,6 +216,39 @@ def test_committed_doc_tables_match_the_json(th):
     expected = benchmark_report.replace_tables(doc, benchmark_report.tables_markdown(
         benchmark_report.load_results(), th))
     assert doc == expected
+
+
+def test_real_case_no_trend_columns(th, fpr):
+    """Table 6's no-trend columns, from the committed records: "no trend" is
+    unreachable for 10 of 18 cases and allowed for none (docs/benchmark.md,
+    the no_trend_margin decision)."""
+    nt = benchmark_report.real_case_no_trend(fpr, th)
+    assert len(nt) == 18
+    unreachable = sorted(k for k, v in nt.items() if not v["reachable"])
+    assert unreachable == sorted([
+        ("mexicali", "temperature"), ("amazon", "temperature"), ("iberia", "temperature"),
+        ("yucatan", "precipitation"), ("amazon", "precipitation"), ("iberia", "precipitation"),
+        ("mexico_city", "soil_moisture"), ("yucatan", "soil_moisture"),
+        ("amazon", "soil_moisture"), ("iberia", "soil_moisture")])
+    assert not any(v["allowed"] for v in nt.values())
+    for (region, var), v in nt.items():
+        assert v["margin"] == th["no_trend_margin"][var]
+        assert v["reachable"] == (v["half_width"] <= v["margin"])  # all 18 are inside the grid
+    mc = nt[("mexico_city", "precipitation")]
+    assert mc["reachable"] and mc["hr_p"] >= th["alpha_moderate"] and not mc["allowed"]
+
+
+def test_update_doc_fails_on_stale_bands(th, tmp_path):
+    results = benchmark_report.load_results()
+    benchmark_report.check_bands_current(results, th)  # committed bands are current
+    stale = copy.deepcopy(th)
+    stale["autocorrelation_bands"][2]["max_verdict"] = "strong"
+    doc = tmp_path / "doc.md"
+    original = f"{benchmark_report.TABLES_START}\n{benchmark_report.TABLES_END}\n"
+    doc.write_text(original, encoding="utf-8")
+    with pytest.raises(ValueError, match="derive_bands"):
+        benchmark_report.update_doc(results, stale, doc)
+    assert doc.read_text(encoding="utf-8") == original
 
 
 def test_committed_figures_exist():

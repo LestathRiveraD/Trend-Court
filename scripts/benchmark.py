@@ -32,7 +32,10 @@ master seed.
 and ``trendcourt/thresholds.json``, writes ``fpr_vs_phi.png``,
 ``coverage_vs_phi.png`` and ``power_vs_years.png`` to ``docs/benchmark/``
 and regenerates the tables in ``docs/benchmark.md``
-(:mod:`trendcourt.benchmark_report`).
+(:mod:`trendcourt.benchmark_report`). The no-trend columns of Table 6
+also read the committed real-case records in ``data/`` (``clerk.prepare``).
+Fails if the bands in ``thresholds.json`` differ from
+``thresholds.derive_bands`` on ``fpr.json``.
 """
 
 import argparse

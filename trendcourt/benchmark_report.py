@@ -3,7 +3,9 @@
 Nothing here reruns the simulation: every number comes from
 ``docs/benchmark/{fpr,coverage,power}.json`` (written by
 ``scripts/benchmark.py --experiment ...``) and
-``trendcourt/thresholds.json``. Regenerate with::
+``trendcourt/thresholds.json``, except the no-trend columns of Table 6,
+which read the committed real-case records in ``data/`` through
+``clerk.prepare`` (:func:`real_case_no_trend`). Regenerate with::
 
     python scripts/benchmark.py --figures
 
@@ -258,7 +260,50 @@ def table_bands(th: dict) -> str:
                    f"FPR @{th['alpha_strong']:g}", "verdict cap", "Moderate needs p <"], rows)
 
 
+def real_case_no_trend(fpr: dict, th: dict) -> dict[tuple[str, str], dict]:
+    """What the no-trend rule gives on each real case, from the committed data.
+
+    No simulation: for every case in ``fpr["real_cases"]`` that passed the
+    quality gate, ``clerk.prepare`` the record (``data/``), then
+    ``examiner.theil_sen`` and ``examiner.mk_hamed_rao`` on the anomalies,
+    as ``trendcourt.case.examine`` does. ``r1`` is the case's committed
+    ``r1_detrended``. Per case, keyed ``(region, variable)``:
+
+    * ``half_width``: the larger side of the AR(1)-widened Theil–Sen
+      interval, per decade, in the variable's units. If the slope were
+      exactly 0 the widened interval would be ``[-half_width, +half_width]``
+      at most, so "no trend" is **reachable** at all only when
+      ``half_width <= margin``.
+    * ``margin``: ``no_trend_margin`` for the variable.
+    * ``hr_p``: Hamed–Rao p-value.
+    * ``reachable``: ``band_for(r1)`` is not ``None`` and ``half_width <= margin``.
+    * ``allowed``: :func:`trendcourt.thresholds.no_trend_allowed` on the
+      case's own slope, interval, ``r1`` and p.
+    """
+    from trendcourt import clerk, examiner
+
+    out = {}
+    for row in fpr["real_cases"]:
+        r1d = row["r1_detrended"]
+        if r1d is None:
+            continue
+        prepared = clerk.prepare(row["region"], row["variable"])
+        ts = examiner.theil_sen(prepared.time, prepared.anomalies)
+        hr = examiner.mk_hamed_rao(prepared.anomalies)
+        s, lo, hi = ts.slope_per_decade, ts.low_slope_per_decade, ts.high_slope_per_decade
+        f = thresholds.widening_factor(r1d)
+        half = f * max(s - lo, hi - s)
+        margin = th["no_trend_margin"][row["variable"]]
+        out[(row["region"], row["variable"])] = {
+            "half_width": half, "margin": margin, "hr_p": hr.p,
+            "reachable": thresholds.band_for(r1d, th) is not None and half <= margin,
+            "allowed": thresholds.no_trend_allowed(row["variable"], s, lo, hi, r1d, hr.p, th),
+        }
+    return out
+
+
 def table_real_cases(fpr: dict, th: dict) -> str:
+    no_trend = real_case_no_trend(fpr, th)
     rows = []
     for row in fpr["real_cases"]:
         r1d = row["r1_detrended"]
@@ -271,9 +316,18 @@ def table_real_cases(fpr: dict, th: dict) -> str:
             mod = "n/a" if b is None or b["moderate_alpha"] is None else f"{b['moderate_alpha']:g}"
         rows.append([row["region"], row["variable"].replace("_", " "), f"{row['r1']:.2f}",
                      "n/a" if r1d is None else f"{r1d:.2f}", band_txt, cap, mod,
-                     "n/a" if r1d is None else f"{thresholds.widening_factor(r1d):.2f}"])
+                     "n/a" if r1d is None else f"{thresholds.widening_factor(r1d):.2f}"]
+                    + _no_trend_cells(no_trend.get((row["region"], row["variable"]))))
     return _table(["region", "variable", "r1", "r1 detrended", "band", "verdict cap",
-                   "Moderate needs p <", "interval widening"], rows)
+                   "Moderate needs p <", "interval widening", "widened half-width",
+                   "no-trend margin", "Hamed–Rao p", "no trend reachable", "no trend allowed"], rows)
+
+
+def _no_trend_cells(nt: dict | None) -> list[str]:
+    if nt is None:
+        return ["n/a"] * 5
+    return [f"{nt['half_width']:.3g}", f"{nt['margin']:g}", "< 0.001" if nt["hr_p"] < 0.001 else f"{nt['hr_p']:.3f}",
+            "yes" if nt["reachable"] else "no", "yes" if nt["allowed"] else "no"]
 
 
 def tables_markdown(results: dict, th: dict) -> str:
@@ -299,7 +353,14 @@ def tables_markdown(results: dict, th: dict) -> str:
         table_bands(th),
         "### Table 6. The 18 real cases",
         "Lag-1 autocorrelation of the anomalies, before and after removing the Theil–Sen line; "
-        "the band uses the detrended value.",
+        "the band uses the detrended value. The last five columns apply the no-trend rule to the "
+        "case's own record (`clerk.prepare`, `examiner.theil_sen`, `examiner.mk_hamed_rao`; "
+        "no simulation). Widened half-width: the larger side of the Theil–Sen 95% interval "
+        "widened by the factor in the previous column, per decade, in the variable's units "
+        "(°C, mm/day, fraction), as is the margin. Reachable: \"no trend\" could be given at "
+        "all on this record, i.e. even at a slope of exactly 0 (half-width ≤ margin, `r1` "
+        "inside the benchmark). Allowed: `thresholds.no_trend_allowed` on the case's slope, "
+        "interval, `r1` and p.",
         table_real_cases(fpr, th),
     ]
     return "\n\n".join(parts)
@@ -314,7 +375,22 @@ def replace_tables(doc: str, tables: str) -> str:
     return f"{head}{TABLES_START}\n\n{tables}\n\n{TABLES_END}{tail}"
 
 
+def check_bands_current(results: dict, th: dict) -> None:
+    """Raise if the committed bands are not what ``derive_bands`` gives on ``fpr.json``.
+
+    The bands are stored in ``thresholds.json`` and drawn in Table 5; after
+    an FPR rerun they must be rewritten, or the tables would show stale caps.
+    """
+    p = th["fpr_policy"]
+    derived = thresholds.derive_bands(results["fpr"], th["alpha_strong"], th["alpha_moderate"],
+                                      p["max_fpr_strong"], p["max_fpr_moderate"])
+    if th["autocorrelation_bands"] != json.loads(json.dumps(derived)):
+        raise ValueError("thresholds.json autocorrelation_bands differ from derive_bands(fpr.json); "
+                         "rewrite them from thresholds.derive_bands before regenerating the tables")
+
+
 def update_doc(results: dict, th: dict, doc_path: Path = DOC_PATH) -> Path:
+    check_bands_current(results, th)
     doc = doc_path.read_text(encoding="utf-8")
     doc_path.write_text(replace_tables(doc, tables_markdown(results, th)), encoding="utf-8")
     return doc_path

@@ -16,8 +16,10 @@ thresholds from them. The thresholds are in
   5% level, and about 1–2% at the 1% level.
 * The more each month resembles the last (autocorrelation, `phi`), the
   more often the test finds trends that are not there. At `phi = 0.9` it
-  does so in about 30% of trend-free series at the 5% level. Soil moisture
-  in all six regions, and temperature in the Amazon, are this persistent.
+  does so in about 30% of trend-free series at the 5% level. Two of the 18
+  real cases are this persistent (soil moisture in the Sahel and the
+  Amazon); soil moisture elsewhere and Amazon temperature are at 0.68–0.79,
+  at or below `phi = 0.8`, where the rate is about 16%.
 * The Theil–Sen 95% interval is too narrow whenever the noise is
   autocorrelated: it contains the true slope 85% of the time at
   `phi = 0.3` and 36% at `phi = 0.9`. The loss matches what the textbook
@@ -71,6 +73,13 @@ regenerated from those files, without rerunning the simulation, by
 python scripts/benchmark.py --figures
 ```
 
+The no-trend columns of Table 6 are the one exception to "from those
+files": they apply the rule to the real records, so `--figures` also
+reads the committed POWER data in `data/` (through `clerk.prepare`; no
+download, no simulation). `--figures` also stops with an error if the
+bands in `thresholds.json` are no longer what `derive_bands` gives on
+`fpr.json`.
+
 ## Figures
 
 ### False-positive rate against `phi`
@@ -112,7 +121,9 @@ test's own false positives.
   still usable with the inflation stated.
 * **It fails at `phi` of 0.8 and above.** At 0.05 it rejects 16% of
   trend-free series at `phi = 0.8` and 28–30% at 0.9; at 0.01, 5–7% and
-  15–17%. These are the soil-moisture cases and Amazon temperature.
+  15–17%. Sahel (0.81) and Amazon (0.89) soil moisture are in this range;
+  Mexicali, Iberia and Mexico City soil moisture and Amazon temperature
+  (0.75–0.79) are just below 0.8, and Yucatán soil moisture is at 0.68.
 * **The correlated seasonal Mann–Kendall** is less liberal (0.21 at 0.05,
   `phi = 0.9`, 45 years) but still inflated. It is a consistency check in
   `project.md` §3, not the verdict test, and we keep it that way.
@@ -165,7 +176,8 @@ record's autocorrelation, with an explicit policy:
   limit but within the Moderate one; at 0.05 it is 0.163, far above.
 * **0.8 < `r1` ≤ 0.9: capped at Inconclusive.** At `phi = 0.9` the FPR is
   0.168 [0.145, 0.193] even at 0.01.
-* **`r1` > 0.9:** outside the benchmark; Inconclusive.
+* **`r1` > 0.9:** outside the benchmark; Inconclusive, and never "No
+  detectable trend" either (see the no-trend rule below).
 
 Choices inside the policy, all leaning towards fewer false positives:
 
@@ -175,8 +187,10 @@ Choices inside the policy, all leaning towards fewer false positives:
 * The rate is the **worst over record lengths** (20, 30 and 45 years),
   because Phase 3 windows are shorter than the full record.
 * The policy uses the **point estimate**. Using the upper end of the
-  interval instead would move only one band (0.3–0.6 to Moderate at
-  p < 0.01, as its interval at 0.05 reaches 0.114); we judged the point
+  interval instead would change only one band: in 0.3–0.6 the Moderate
+  cut-off would become p < 0.01, as its interval at 0.05 reaches 0.114;
+  its cap would stay Strong, as its interval at 0.01 reaches only 0.037
+  (≤ 0.05). We judged the point
   estimate plus the upper-`phi` rule conservative enough, and leave it to
   the statistics reviewer.
 
@@ -205,17 +219,54 @@ decade for a typical region, near the smallest slope the test finds
 reliably with 45 years (Table 4), so "no detectable trend" means "any
 trend is smaller than what this record could have shown".
 
+Where the rule applies, by autocorrelation band:
+
+* **`r1` inside the benchmark (≤ 0.9), including the (0.8, 0.9] band.**
+  "No detectable trend" stays allowed there, even though that band is
+  capped at Inconclusive for significance claims. The cap is about the
+  false-positive rate of the significance test; the no-trend rule rests on
+  the widened interval, whose AR(1) factor matches the simulated coverage
+  up to `phi = 0.9` and is slightly conservative there (4.36 against the
+  4.17 needed, Table 3).
+* **`r1` above the benchmark (> 0.9): never.** The widening was not
+  checked there, so `no_trend_allowed` returns False and the verdict is
+  Inconclusive.
+
 | variable | margin | over 45 years | reasoning |
 |---|---|---|---|
 | temperature | 0.1 °C/decade | 0.45 °C | About half the global-mean surface warming rate since the late 1970s (about 0.2 °C/decade); a region warming less than that is not distinguishable from "no trend" on this record. Detrended anomaly SD in the six regions: 0.78–1.54 °C, so 0.06–0.13 SD/decade. |
 | precipitation | 0.05 mm/day/decade | 0.23 mm/day | 18 mm/year per decade, about 2.6% per decade of the median regional mean (1.9 mm/day; range 0.36 in Mexicali to 5.9 in Manaus). Detrended anomaly SD: 0.46–1.87 mm/day, so 0.03–0.11 SD/decade. |
-| soil moisture | 0.005 /decade | 0.0225 | POWER `GWETROOT` is root-zone wetness on a 0–1 scale. 0.005 is half a percentage point of wetness per decade, 1–2% of the regional means (0.27–0.77). Detrended anomaly SD: 0.025–0.080, so 0.06–0.20 SD/decade. |
+| soil moisture | 0.005 /decade | 0.0225 | POWER `GWETROOT` is root-zone wetness on a 0–1 scale. 0.005 is half a percentage point of wetness per decade, about 0.65–1.9% of the regional means (0.27–0.77). Detrended anomaly SD: 0.025–0.080, so 0.06–0.20 SD/decade. |
 
 Known weakness: one absolute precipitation margin is generous for arid
 regions (0.05 mm/day/decade is 14% per decade of Mexicali's mean) and
 strict for wet ones. The issue asks for a per-variable margin in mm/day;
 a margin relative to the regional mean is a candidate change before
 Gate 2, for the statistics reviewer to decide.
+
+**Decision: the margins stay; on these records "No detectable trend" is
+rare, and that is intended.** The margins are set from what counts as a
+relevant trend (above), not to make the rule fire. With 45-year records
+and the honest, widened interval, the interval is often wider than the
+margin even at a slope of exactly 0, so the verdict on a non-significant
+record will usually be Inconclusive rather than "no detectable trend".
+That is the intended conservative behaviour: the tool does not claim the
+absence of a trend that the record could not have shown. Table 6 records
+the effect on the 18 cases (widened half-width, margin, whether "no
+trend" is reachable at all, and whether it is allowed now):
+
+* "No trend" is **not reachable at any slope** for 10 of 18 cases:
+  temperature in Mexicali, the Amazon and Iberia; precipitation in
+  Yucatán, the Amazon and Iberia; soil moisture in Mexico City, Yucatán,
+  the Amazon and Iberia.
+* It is **allowed for none** of the 18 now. Six cases are not significant
+  at 0.05 (precipitation and soil moisture in Mexico City, Yucatán and
+  Iberia); only Mexico City precipitation could reach it (widened
+  half-width 0.048 against 0.05), and its slope is off-centre enough that
+  the widened interval, about [−0.058, +0.037] mm/day/decade, crosses the
+  margin.
+* Phase 3 windows (down to 15 years) have wider intervals still, so there
+  the rule will fire even less.
 
 ## Open points for the statistics reviewer
 
@@ -228,6 +279,12 @@ Gate 2, for the statistics reviewer to decide.
 4. Only alpha 0.05 and 0.01 were simulated, so the Moderate cut-off can
    only move between those two.
 5. The precipitation margin (absolute vs relative).
+6. The no-trend margins as calibrated make "No detectable trend"
+   unreachable for 10 of the 18 cases and given for none (Table 6). We
+   accept that as the conservative choice (Inconclusive instead); the
+   alternative is wider margins, which would weaken what "no trend" means.
+7. `max_fpr_strong = 0.05` lets Strong (p < 0.01) carry up to 5 times its
+   nominal rate; in the bands it allows now the rate is 0.022–0.025.
 
 ## Tables
 
@@ -330,28 +387,28 @@ FPR is the worst case over 20, 30 and 45 years at the band's benchmark phi.
 
 ### Table 6. The 18 real cases
 
-Lag-1 autocorrelation of the anomalies, before and after removing the Theil–Sen line; the band uses the detrended value.
+Lag-1 autocorrelation of the anomalies, before and after removing the Theil–Sen line; the band uses the detrended value. The last five columns apply the no-trend rule to the case's own record (`clerk.prepare`, `examiner.theil_sen`, `examiner.mk_hamed_rao`; no simulation). Widened half-width: the larger side of the Theil–Sen 95% interval widened by the factor in the previous column, per decade, in the variable's units (°C, mm/day, fraction), as is the margin. Reachable: "no trend" could be given at all on this record, i.e. even at a slope of exactly 0 (half-width ≤ margin, `r1` inside the benchmark). Allowed: `thresholds.no_trend_allowed` on the case's slope, interval, `r1` and p.
 
-| region | variable | r1 | r1 detrended | band | verdict cap | Moderate needs p < | interval widening |
-|---|---|---|---|---|---|---|---|
-| mexicali | temperature | 0.28 | 0.20 | (-1, 0.3] | strong | 0.05 | 1.22 |
-| mexicali | precipitation | 0.21 | 0.20 | (-1, 0.3] | strong | 0.05 | 1.22 |
-| mexicali | soil moisture | 0.80 | 0.79 | (0.6, 0.8] | moderate | 0.01 | 2.92 |
-| mexico_city | temperature | 0.59 | 0.43 | (0.3, 0.6] | strong | 0.05 | 1.58 |
-| mexico_city | precipitation | 0.13 | 0.13 | (-1, 0.3] | strong | 0.05 | 1.14 |
-| mexico_city | soil moisture | 0.76 | 0.75 | (0.6, 0.8] | moderate | 0.01 | 2.67 |
-| yucatan | temperature | 0.43 | 0.34 | (0.3, 0.6] | strong | 0.05 | 1.43 |
-| yucatan | precipitation | 0.07 | 0.07 | (-1, 0.3] | strong | 0.05 | 1.07 |
-| yucatan | soil moisture | 0.68 | 0.68 | (0.6, 0.8] | moderate | 0.01 | 2.27 |
-| sahel | temperature | 0.34 | 0.33 | (0.3, 0.6] | strong | 0.05 | 1.41 |
-| sahel | precipitation | 0.17 | 0.16 | (-1, 0.3] | strong | 0.05 | 1.18 |
-| sahel | soil moisture | 0.83 | 0.81 | (0.8, 0.9] | inconclusive | n/a | 3.06 |
-| amazon | temperature | 0.82 | 0.78 | (0.6, 0.8] | moderate | 0.01 | 2.86 |
-| amazon | precipitation | 0.38 | 0.33 | (0.3, 0.6] | strong | 0.05 | 1.41 |
-| amazon | soil moisture | 0.90 | 0.89 | (0.8, 0.9] | inconclusive | n/a | 4.14 |
-| iberia | temperature | 0.29 | 0.21 | (-1, 0.3] | strong | 0.05 | 1.24 |
-| iberia | precipitation | 0.16 | 0.15 | (-1, 0.3] | strong | 0.05 | 1.17 |
-| iberia | soil moisture | 0.79 | 0.78 | (0.6, 0.8] | moderate | 0.01 | 2.87 |
+| region | variable | r1 | r1 detrended | band | verdict cap | Moderate needs p < | interval widening | widened half-width | no-trend margin | Hamed–Rao p | no trend reachable | no trend allowed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mexicali | temperature | 0.28 | 0.20 | (-1, 0.3] | strong | 0.05 | 1.22 | 0.125 | 0.1 | < 0.001 | no | no |
+| mexicali | precipitation | 0.21 | 0.20 | (-1, 0.3] | strong | 0.05 | 1.22 | 0.0224 | 0.05 | 0.006 | yes | no |
+| mexicali | soil moisture | 0.80 | 0.79 | (0.6, 0.8] | moderate | 0.01 | 2.92 | 0.00234 | 0.005 | 0.026 | yes | no |
+| mexico_city | temperature | 0.59 | 0.43 | (0.3, 0.6] | strong | 0.05 | 1.58 | 0.0789 | 0.1 | < 0.001 | yes | no |
+| mexico_city | precipitation | 0.13 | 0.13 | (-1, 0.3] | strong | 0.05 | 1.14 | 0.0482 | 0.05 | 0.673 | yes | no |
+| mexico_city | soil moisture | 0.76 | 0.75 | (0.6, 0.8] | moderate | 0.01 | 2.67 | 0.00728 | 0.005 | 0.284 | no | no |
+| yucatan | temperature | 0.43 | 0.34 | (0.3, 0.6] | strong | 0.05 | 1.43 | 0.0766 | 0.1 | < 0.001 | yes | no |
+| yucatan | precipitation | 0.07 | 0.07 | (-1, 0.3] | strong | 0.05 | 1.07 | 0.0846 | 0.05 | 0.498 | no | no |
+| yucatan | soil moisture | 0.68 | 0.68 | (0.6, 0.8] | moderate | 0.01 | 2.27 | 0.00683 | 0.005 | 0.688 | no | no |
+| sahel | temperature | 0.34 | 0.33 | (0.3, 0.6] | strong | 0.05 | 1.41 | 0.0953 | 0.1 | 0.016 | yes | no |
+| sahel | precipitation | 0.17 | 0.16 | (-1, 0.3] | strong | 0.05 | 1.18 | 0.0183 | 0.05 | 0.016 | yes | no |
+| sahel | soil moisture | 0.83 | 0.81 | (0.8, 0.9] | inconclusive | n/a | 3.06 | 0.00362 | 0.005 | < 0.001 | yes | no |
+| amazon | temperature | 0.82 | 0.78 | (0.6, 0.8] | moderate | 0.01 | 2.86 | 0.138 | 0.1 | < 0.001 | no | no |
+| amazon | precipitation | 0.38 | 0.33 | (0.3, 0.6] | strong | 0.05 | 1.41 | 0.167 | 0.05 | < 0.001 | no | no |
+| amazon | soil moisture | 0.90 | 0.89 | (0.8, 0.9] | inconclusive | n/a | 4.14 | 0.0226 | 0.005 | < 0.001 | no | no |
+| iberia | temperature | 0.29 | 0.21 | (-1, 0.3] | strong | 0.05 | 1.24 | 0.12 | 0.1 | < 0.001 | no | no |
+| iberia | precipitation | 0.16 | 0.15 | (-1, 0.3] | strong | 0.05 | 1.17 | 0.0586 | 0.05 | 0.178 | no | no |
+| iberia | soil moisture | 0.79 | 0.78 | (0.6, 0.8] | moderate | 0.01 | 2.87 | 0.00661 | 0.005 | 0.063 | no | no |
 
 <!-- tables:end -->
 
