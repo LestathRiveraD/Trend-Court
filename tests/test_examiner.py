@@ -228,34 +228,71 @@ def assert_matches_library(res, ref):
         assert getattr(res, f) == getattr(ref, f), f
 
 
+def smk_reference(y, alpha=0.05):
+    """Direct library call the seasonal wrapper must equal."""
+    v = np.asarray(y, dtype=float)
+    v = np.pad(v, (0, -len(v) % 12), constant_values=np.nan)
+    return pmk.correlated_multivariate_test(v.reshape(-1, 12), alpha=alpha)
+
+
 def test_hamed_rao_matches_library_exactly():
     _, y = random_series()
     res = examiner.mk_hamed_rao(y)
-    assert_matches_library(res, pmk.hamed_rao_modification_test(y, alpha=0.05, lag=None))
-    assert (res.test, res.alpha, res.n, res.lag, res.period) == ("hamed_rao", 0.05, len(y), None, None)
+    assert_matches_library(res, pmk.hamed_rao_modification_test(y, alpha=0.05, lag=3))
+    assert (res.test, res.alpha, res.n, res.lag, res.period) == ("hamed_rao", 0.05, len(y), 3, None)
 
 
 def test_hamed_rao_records_lag_and_alpha():
     _, y = random_series()
-    res = examiner.mk_hamed_rao(y, alpha=0.1, lag=3)
-    assert_matches_library(res, pmk.hamed_rao_modification_test(y, alpha=0.1, lag=3))
-    assert res.lag == 3 and res.alpha == 0.1
-    assert res.var_s != examiner.mk_hamed_rao(y, alpha=0.1).var_s  # lag actually used
+    res = examiner.mk_hamed_rao(y, alpha=0.1, lag=12)
+    assert_matches_library(res, pmk.hamed_rao_modification_test(y, alpha=0.1, lag=12))
+    assert res.lag == 12 and res.alpha == 0.1
+    all_lags = examiner.mk_hamed_rao(y, alpha=0.1, lag=None)
+    assert_matches_library(all_lags, pmk.hamed_rao_modification_test(y, alpha=0.1, lag=None))
+    assert all_lags.lag is None
+    assert len({res.var_s, all_lags.var_s, examiner.mk_hamed_rao(y).var_s}) == 3  # lag actually used
 
 
 def test_seasonal_matches_library_exactly():
     y = seasonal_series()
     res = examiner.mk_seasonal(y)
-    assert_matches_library(res, pmk.seasonal_test(y.to_numpy(), period=12, alpha=0.05))
-    assert (res.test, res.alpha, res.n, res.lag, res.period) == ("seasonal", 0.05, len(y), None, 12)
+    assert_matches_library(res, smk_reference(y.to_numpy()))
+    assert (res.test, res.alpha, res.n, res.lag, res.period) == ("correlated_seasonal", 0.05, len(y), None, 12)
 
 
-def test_seasonal_accepts_period_index_and_partial_final_year():
+def test_seasonal_equals_correlated_seasonal_test_at_default_alpha():
+    y = seasonal_series(slope=0.05)
+    res = examiner.mk_seasonal(y)
+    assert_matches_library(res, pmk.correlated_seasonal_test(y.to_numpy(), period=12))
+
+
+def test_seasonal_forwards_alpha():
+    """pymannkendall 1.4.3's correlated_seasonal_test ignores alpha (always
+    0.05); the wrapper must not. Pick a series with 0.05 < p < 0.10."""
+    for seed in range(200):
+        y = seasonal_series(slope=0.02, seed=seed)
+        lib = pmk.correlated_seasonal_test(y.to_numpy(), period=12, alpha=0.10)
+        if 0.05 < lib.p < 0.10:
+            break
+    else:
+        pytest.fail("no seed with 0.05 < p < 0.10")
+    assert not lib.h  # library bug reproduced: alpha=0.10 ignored
+    res = examiner.mk_seasonal(y, alpha=0.10)
+    assert res.h is True and res.p == lib.p and res.alpha == 0.10
+    assert examiner.mk_seasonal(y).h is False
+
+
+def test_seasonal_accepts_period_index_and_drops_partial_final_year():
     y = seasonal_series(n=245)  # ends in May
     res = examiner.mk_seasonal(y)
-    assert_matches_library(res, pmk.seasonal_test(y.to_numpy(), period=12, alpha=0.05))
-    assert res.n == 245
+    assert_matches_library(res, smk_reference(y.to_numpy()))
+    assert res.n == 240  # the partial year is left out by the library
     assert examiner.mk_seasonal(y.to_period("M")) == res
+    # The test statistics ignore the partial year; only the library's
+    # reference-only intercept still uses its values.
+    whole = examiner.mk_seasonal(y.iloc[:240])
+    for f in ("trend", "h", "p", "z", "Tau", "s", "var_s", "n"):
+        assert getattr(whole, f) == getattr(res, f), f
 
 
 @pytest.mark.parametrize("start", ["1981-02", "1981-12"])
@@ -289,29 +326,31 @@ def test_hamed_rao_nan_handling_in_installed_pymannkendall():
     y_clean = y_nan[~np.isnan(y_nan)]
 
     res = examiner.mk_hamed_rao(y_nan)
-    assert_matches_library(res, pmk.hamed_rao_modification_test(y_nan))
+    assert_matches_library(res, pmk.hamed_rao_modification_test(y_nan, lag=3))
     assert res.n == len(y_clean)
     plain = pmk.original_test(y_clean)
     assert res.s == plain.s and res.Tau == plain.Tau
     assert np.isfinite(res.p)
 
 
-def test_seasonal_nan_keeps_month_alignment():
-    """seasonal_test reshapes to years x 12 before skipping NaN, so S is the
-    sum of per-calendar-month S with each month's NaN dropped."""
+def test_seasonal_nan_drops_whole_years_and_keeps_alignment():
+    """The correlated test reshapes to years x 12 and then drops every year
+    with a NaN month, so S is the sum of per-month S over complete years."""
     y = seasonal_series(slope=0.3)
-    y.iloc[[0, 14, 15, 100, 101, 102]] = np.nan
+    y.iloc[[0, 14, 15, 100, 101, 102]] = np.nan  # years 0, 1 and 8 incomplete
 
     res = examiner.mk_seasonal(y)
-    assert_matches_library(res, pmk.seasonal_test(y.to_numpy(), period=12, alpha=0.05))
-    assert res.n == len(y) - 6
+    assert_matches_library(res, smk_reference(y.to_numpy()))
+    assert res.n == (20 - 3) * 12
 
-    by_month = y.to_numpy().reshape(-1, 12)
-    expected_s = sum(pmk.original_test(col[~np.isnan(col)]).s for col in by_month.T)
+    by_year = y.to_numpy().reshape(-1, 12)
+    complete = by_year[~np.isnan(by_year).any(axis=1)]
+    expected_s = sum(pmk.original_test(col).s for col in complete.T)
     assert res.s == expected_s
+    assert examiner.mk_seasonal(monthly(complete.ravel())).s == res.s
 
     # Dropping the NaN before the call would shift months: a different S.
-    shifted = pmk.seasonal_test(y.dropna().to_numpy(), period=12)
+    shifted = smk_reference(y.dropna().to_numpy())
     assert shifted.s != res.s
 
 
@@ -332,9 +371,6 @@ def test_strong_trend_detected_with_correct_sign(slope, sign, trend):
 
 
 def test_white_noise_fixed_seed_gives_no_trend():
-    # Seed 2 of default_rng. Note: with the library default lag=None
-    # (all lags) Hamed-Rao rejects white noise ~9% of the time at alpha
-    # 0.05 for n=240, so not every seed gives h=False.
     y = np.random.default_rng(2).normal(size=240)
     mk, smk = examiner.mk_hamed_rao(y), examiner.mk_seasonal(monthly(y))
     assert mk.h is False and mk.trend == "no trend"
@@ -343,10 +379,25 @@ def test_white_noise_fixed_seed_gives_no_trend():
     assert c["same_significance"] is True and c["mk_significant"] is False
 
 
+def test_correlated_seasonal_accounts_for_month_to_month_correlation():
+    """Plain seasonal MK understates Var(S) under monthly autocorrelation;
+    the correlated test must give a larger Var(S) for the same S."""
+    rng = np.random.default_rng(5)
+    e = np.zeros(360)
+    for i in range(1, 360):
+        e[i] = 0.8 * e[i - 1] + rng.normal()
+    raw = monthly(10 + 5 * np.sin(2 * np.pi * np.arange(360) / 12) + e)
+    res = examiner.mk_seasonal(raw)
+    plain = pmk.seasonal_test(raw.to_numpy(), period=12)
+    assert res.s == plain.s
+    assert res.var_s > 2 * plain.var_s
+
+
 def test_consistency_reports_disagreement():
     base = examiner.mk_hamed_rao(random_series()[1])
     mk = examiner.MKResult(**{**base.to_dict(), "s": 120.0, "h": True})
-    smk = examiner.MKResult(**{**base.to_dict(), "test": "seasonal", "period": 12, "s": -40.0, "h": False})
+    smk = examiner.MKResult(**{**base.to_dict(), "test": "correlated_seasonal", "lag": None,
+                               "period": 12, "s": -40.0, "h": False})
     c = examiner.consistency(mk, smk)
     assert (c["mk_sign"], c["smk_sign"]) == (1, -1)
     assert c["same_sign"] is False and c["same_significance"] is False and c["agree"] is False
@@ -356,16 +407,17 @@ def test_consistency_reports_disagreement():
 def test_consistency_rejects_swapped_or_mismatched_inputs():
     mk = examiner.mk_hamed_rao(random_series()[1])
     smk = examiner.mk_seasonal(seasonal_series())
-    with pytest.raises(ValueError, match="hamed_rao, seasonal"):
+    with pytest.raises(ValueError, match="hamed_rao, correlated_seasonal"):
         examiner.consistency(smk, mk)
     with pytest.raises(ValueError, match="alpha"):
         examiner.consistency(mk, examiner.mk_seasonal(seasonal_series(), alpha=0.1))
 
 
 def test_mk_results_round_trip_through_json():
-    mk = examiner.mk_hamed_rao(random_series()[1], lag=3)
+    mk = examiner.mk_hamed_rao(random_series()[1])
+    mk_all = examiner.mk_hamed_rao(random_series()[1], lag=None)
     smk = examiner.mk_seasonal(seasonal_series())
-    for res in (mk, smk):
+    for res in (mk, mk_all, smk):
         d = res.to_dict()
         assert all(type(v) in (float, int, str, bool, type(None)) for v in d.values())
         assert type(d["h"]) is bool and type(d["s"]) is float and type(d["n"]) is int
@@ -386,6 +438,8 @@ def test_mk_rejects_bad_input():
         examiner.mk_hamed_rao([1.0, np.nan, 2.0])
     with pytest.raises(ValueError, match="alpha"):
         examiner.mk_hamed_rao(y, alpha=5)
+    with pytest.raises(ValueError, match="alpha"):
+        examiner.mk_seasonal(seasonal_series(), alpha=0)
     for lag in (0, -1, 2.5, True, len(y)):
         with pytest.raises(ValueError, match="lag"):
             examiner.mk_hamed_rao(y, lag=lag)
@@ -399,23 +453,24 @@ def test_hamed_rao_rejects_broken_variance_correction():
         ref = pmk.hamed_rao_modification_test(y)
     assert ref.var_s < 0 and np.isnan(ref.p) and not ref.h  # library breakdown reproduced
     with pytest.raises(ValueError, match="non-positive or undefined"):
-        examiner.mk_hamed_rao(y)
-    res = examiner.mk_hamed_rao(y, lag=3)  # explicit lag avoids it
+        examiner.mk_hamed_rao(y, lag=None)
+    res = examiner.mk_hamed_rao(y)  # the default lag=3 avoids it
     assert res.var_s > 0 and np.isfinite(res.p)
     with pytest.raises(ValueError, match="non-positive or undefined"):
         examiner.mk_hamed_rao(np.ones(30))  # constant series: Var(S) is NaN
 
 
-def test_seasonal_rejects_no_month_with_two_values():
-    one_year = pd.Series(np.arange(12.0), index=pd.period_range("2000-01", periods=12, freq="M"))
-    with pytest.raises(ValueError, match="calendar month with 2 or more"):
-        examiner.mk_seasonal(one_year)
-    sparse = pd.Series([np.nan] * 12 + [1.0, 2.0, 3.0],
-                       index=pd.period_range("2000-01", periods=15, freq="M"))
-    with pytest.raises(ValueError, match="calendar month with 2 or more"):
-        examiner.mk_seasonal(sparse)
-    # One month observed in two years is enough for the library to run.
-    ok = pd.Series([1.0] + [np.nan] * 11 + [2.0, 5.0, 6.0],
-                   index=pd.period_range("2000-01", periods=15, freq="M"))
-    res = examiner.mk_seasonal(ok)
-    assert res.n == 4 and np.isfinite(res.Tau)
+def test_seasonal_requires_three_complete_years():
+    with pytest.raises(ValueError, match="3 complete years"):
+        examiner.mk_seasonal(seasonal_series(n=35))  # 2 complete years + 11 months
+    gappy = seasonal_series(n=60)
+    gappy.iloc[[5, 17, 29]] = np.nan  # 3 of 5 years incomplete
+    with pytest.raises(ValueError, match="3 complete years"):
+        examiner.mk_seasonal(gappy)
+    res = examiner.mk_seasonal(seasonal_series(n=36))
+    assert res.n == 36 and np.isfinite(res.p)
+
+
+def test_seasonal_rejects_constant_series():
+    with pytest.raises(ValueError, match="non-positive or undefined"):
+        examiner.mk_seasonal(monthly(np.ones(60)))
