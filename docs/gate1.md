@@ -44,3 +44,34 @@ pass criteria.
   user box snapped to the MERRA-2 grid), not our box. As a check on the
   bias, POWER is also re-averaged over only the points inside the data
   box (`crosscheck.power_in_box`).
+
+### Results
+
+Reproduce with `python scripts/gate1_giovanni.py`. It writes
+`docs/gate1/giovanni_crosscheck.json` and one figure per region,
+including `docs/gate1/mexicali_power_vs_merra2.png` for the phase 5 table.
+
+| Region | POWER average | Period | Months | r (raw) | r (anomaly) | Bias °C | RMSE °C | POWER slope °C/dec [95%] | MERRA-2 slope °C/dec [95%] | Δ slope (allowed) | Intervals overlap | Result |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| mexicali | full box (9 pts) | 1981-01 to 2025-12 | 540 | 0.9999 | 0.9991 | -0.088 | 0.126 | +0.400 [+0.297, +0.502] | +0.396 [+0.292, +0.496] | +0.004 (≤ 0.100) | yes | PASS |
+| mexicali | data box (6 pts) | 1981-01 to 2025-12 | 540 | 1.0000 | 0.9996 | +0.000 | 0.068 | +0.395 [+0.292, +0.495] | +0.396 [+0.292, +0.496] | -0.001 (≤ 0.100) | yes | PASS |
+| iberia | full box (9 pts) | 1981-01 to 2025-12 | 540 | 0.9999 | 0.9982 | +0.216 | 0.265 | +0.329 [+0.232, +0.425] | +0.332 [+0.236, +0.428] | -0.003 (≤ 0.100) | yes | PASS |
+| iberia | data box (9 pts) | 1981-01 to 2025-12 | 540 | 0.9999 | 0.9982 | +0.216 | 0.265 | +0.329 [+0.232, +0.425] | +0.332 [+0.236, +0.428] | -0.003 (≤ 0.100) | yes | PASS |
+| amazon | full box (9 pts) | 1981-01 to 2025-12 | 540 | 0.9987 | 0.9978 | +0.120 | 0.139 | +0.268 [+0.221, +0.316] | +0.278 [+0.231, +0.326] | -0.010 (≤ 0.100) | yes | PASS |
+| amazon | data box (3 pts) | 1981-01 to 2025-12 | 540 | 0.9975 | 0.9957 | -0.001 | 0.103 | +0.265 [+0.217, +0.314] | +0.278 [+0.231, +0.326] | -0.013 (≤ 0.100) | yes | PASS |
+
+**Verdict: Gate 1 (b) passes.** The full-box POWER series meets every
+tolerance in all three regions, with large margins. Anomaly r is at
+least 0.998 (tolerance 0.95), |bias| is at most 0.22 °C (tolerance 1 °C),
+and the slopes differ by at most 0.01 °C/decade (tolerance 0.1), with
+overlapping intervals.
+
+In mexicali and amazon the box difference accounts for the mean
+offset: restricting POWER to the points inside Giovanni's data box
+brings the bias to about 0.00 °C. In iberia the data box
+(`-4.375,39.5,-2.5,41.5`) still contains all 9 POWER points, so the
++0.22 °C there does not come from the box. Its cause is not established.
+One candidate is that our 9 points sample the box differently from
+Giovanni's mean over every grid cell, which matters more over Iberia's
+relief. It is well within the 1 °C tolerance and does not affect the
+anomalies or slopes.

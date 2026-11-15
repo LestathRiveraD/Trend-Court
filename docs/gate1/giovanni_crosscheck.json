@@ -1,0 +1,365 @@
+{
+  "mexicali": {
+    "giovanni_file": "data/raw/giovanni/mexicali_M2TMNXSLV_T2M.csv",
+    "user_bbox": [
+      -116.0,
+      31.9,
+      -114.8,
+      33.1
+    ],
+    "data_bbox": [
+      -115.625,
+      32.0,
+      -115.0,
+      33.0
+    ],
+    "full_box": {
+      "n_points": 9,
+      "n": 540,
+      "start": "1981-01",
+      "end": "2025-12",
+      "r_raw": 0.9999372937873517,
+      "r_anomaly": 0.9991344697855413,
+      "bias": -0.08827566307453412,
+      "rmse": 0.1259695792753422,
+      "slope_a": {
+        "slope": 0.039991091739493584,
+        "intercept": -80.05361653492297,
+        "low_slope": 0.02973610369997533,
+        "high_slope": 0.050196507630255086,
+        "slope_per_decade": 0.39991091739493584,
+        "low_slope_per_decade": 0.2973610369997533,
+        "high_slope_per_decade": 0.5019650763025508,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_b": {
+        "slope": 0.039584936230582915,
+        "intercept": -79.22287488241733,
+        "low_slope": 0.029238687323946147,
+        "high_slope": 0.04960983501483679,
+        "slope_per_decade": 0.3958493623058291,
+        "low_slope_per_decade": 0.29238687323946144,
+        "high_slope_per_decade": 0.4960983501483679,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_diff": 0.0040615550891067165,
+      "slope_allowance": 0.1,
+      "intervals_overlap": true,
+      "checks": {
+        "anomaly_r": true,
+        "abs_bias": true,
+        "slope_diff": true
+      },
+      "passed": true,
+      "tolerances": {
+        "min_anomaly_r": 0.95,
+        "max_abs_bias": 1.0,
+        "slope_abs": 0.1,
+        "slope_rel": 0.25
+      }
+    },
+    "data_box": {
+      "n_points": 6,
+      "n": 540,
+      "start": "1981-01",
+      "end": "2025-12",
+      "r_raw": 0.9999638465927185,
+      "r_anomaly": 0.9995783310477249,
+      "bias": 0.0003825303437013162,
+      "rmse": 0.0676566474341073,
+      "slope_a": {
+        "slope": 0.03952256354084891,
+        "intercept": -79.1236956148569,
+        "low_slope": 0.02916756018438569,
+        "high_slope": 0.04947458890346378,
+        "slope_per_decade": 0.3952256354084891,
+        "low_slope_per_decade": 0.2916756018438569,
+        "high_slope_per_decade": 0.49474588903463784,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_b": {
+        "slope": 0.039584936230582915,
+        "intercept": -79.22287488241733,
+        "low_slope": 0.029238687323946147,
+        "high_slope": 0.04960983501483679,
+        "slope_per_decade": 0.3958493623058291,
+        "low_slope_per_decade": 0.29238687323946144,
+        "high_slope_per_decade": 0.4960983501483679,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_diff": -0.0006237268973400267,
+      "slope_allowance": 0.1,
+      "intervals_overlap": true,
+      "checks": {
+        "anomaly_r": true,
+        "abs_bias": true,
+        "slope_diff": true
+      },
+      "passed": true,
+      "tolerances": {
+        "min_anomaly_r": 0.95,
+        "max_abs_bias": 1.0,
+        "slope_abs": 0.1,
+        "slope_rel": 0.25
+      }
+    }
+  },
+  "iberia": {
+    "giovanni_file": "data/raw/giovanni/iberia_M2TMNXSLV_T2M.csv",
+    "user_bbox": [
+      -4.5,
+      39.5,
+      -2.5,
+      41.5
+    ],
+    "data_bbox": [
+      -4.375,
+      39.5,
+      -2.5,
+      41.5
+    ],
+    "full_box": {
+      "n_points": 9,
+      "n": 540,
+      "start": "1981-01",
+      "end": "2025-12",
+      "r_raw": 0.9999185630649016,
+      "r_anomaly": 0.9982378001046144,
+      "bias": 0.21641458531587965,
+      "rmse": 0.2654143087161141,
+      "slope_a": {
+        "slope": 0.03293134694461841,
+        "intercept": -66.00665688234176,
+        "low_slope": 0.023247627074226337,
+        "high_slope": 0.042502826923419106,
+        "slope_per_decade": 0.3293134694461841,
+        "low_slope_per_decade": 0.23247627074226337,
+        "high_slope_per_decade": 0.42502826923419107,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_b": {
+        "slope": 0.03320067322463654,
+        "intercept": -66.49562117222595,
+        "low_slope": 0.0235580209523816,
+        "high_slope": 0.042829061883407286,
+        "slope_per_decade": 0.3320067322463654,
+        "low_slope_per_decade": 0.235580209523816,
+        "high_slope_per_decade": 0.4282906188340729,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_diff": -0.002693262800181284,
+      "slope_allowance": 0.1,
+      "intervals_overlap": true,
+      "checks": {
+        "anomaly_r": true,
+        "abs_bias": true,
+        "slope_diff": true
+      },
+      "passed": true,
+      "tolerances": {
+        "min_anomaly_r": 0.95,
+        "max_abs_bias": 1.0,
+        "slope_abs": 0.1,
+        "slope_rel": 0.25
+      }
+    },
+    "data_box": {
+      "n_points": 9,
+      "n": 540,
+      "start": "1981-01",
+      "end": "2025-12",
+      "r_raw": 0.9999185630649016,
+      "r_anomaly": 0.9982378001046144,
+      "bias": 0.21641458531587965,
+      "rmse": 0.2654143087161141,
+      "slope_a": {
+        "slope": 0.03293134694461841,
+        "intercept": -66.00665688234176,
+        "low_slope": 0.023247627074226337,
+        "high_slope": 0.042502826923419106,
+        "slope_per_decade": 0.3293134694461841,
+        "low_slope_per_decade": 0.23247627074226337,
+        "high_slope_per_decade": 0.42502826923419107,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_b": {
+        "slope": 0.03320067322463654,
+        "intercept": -66.49562117222595,
+        "low_slope": 0.0235580209523816,
+        "high_slope": 0.042829061883407286,
+        "slope_per_decade": 0.3320067322463654,
+        "low_slope_per_decade": 0.235580209523816,
+        "high_slope_per_decade": 0.4282906188340729,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_diff": -0.002693262800181284,
+      "slope_allowance": 0.1,
+      "intervals_overlap": true,
+      "checks": {
+        "anomaly_r": true,
+        "abs_bias": true,
+        "slope_diff": true
+      },
+      "passed": true,
+      "tolerances": {
+        "min_anomaly_r": 0.95,
+        "max_abs_bias": 1.0,
+        "slope_abs": 0.1,
+        "slope_rel": 0.25
+      }
+    }
+  },
+  "amazon": {
+    "giovanni_file": "data/raw/giovanni/amazon_M2TMNXSLV_T2M.csv",
+    "user_bbox": [
+      -61.0,
+      -4.0,
+      -59.0,
+      -2.0
+    ],
+    "data_bbox": [
+      -60.625,
+      -4.0,
+      -59.375,
+      -2.0
+    ],
+    "full_box": {
+      "n_points": 9,
+      "n": 540,
+      "start": "1981-01",
+      "end": "2025-12",
+      "r_raw": 0.9987151126985736,
+      "r_anomaly": 0.9977973401692042,
+      "bias": 0.11956281178875308,
+      "rmse": 0.1391967285152611,
+      "slope_a": {
+        "slope": 0.02681600593891144,
+        "intercept": -53.836141145955146,
+        "low_slope": 0.02214966969334415,
+        "high_slope": 0.03163835592024253,
+        "slope_per_decade": 0.26816005938911436,
+        "low_slope_per_decade": 0.22149669693344148,
+        "high_slope_per_decade": 0.3163835592024253,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_b": {
+        "slope": 0.02777744943764466,
+        "intercept": -55.78565777054331,
+        "low_slope": 0.02305242113821155,
+        "high_slope": 0.03260119000000056,
+        "slope_per_decade": 0.2777744943764466,
+        "low_slope_per_decade": 0.23052421138211548,
+        "high_slope_per_decade": 0.32601190000000557,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_diff": -0.009614434987332221,
+      "slope_allowance": 0.1,
+      "intervals_overlap": true,
+      "checks": {
+        "anomaly_r": true,
+        "abs_bias": true,
+        "slope_diff": true
+      },
+      "passed": true,
+      "tolerances": {
+        "min_anomaly_r": 0.95,
+        "max_abs_bias": 1.0,
+        "slope_abs": 0.1,
+        "slope_rel": 0.25
+      }
+    },
+    "data_box": {
+      "n_points": 3,
+      "n": 540,
+      "start": "1981-01",
+      "end": "2025-12",
+      "r_raw": 0.9975323285500212,
+      "r_anomaly": 0.9956985127048302,
+      "bias": -0.0013043652048477655,
+      "rmse": 0.10312571263797342,
+      "slope_a": {
+        "slope": 0.026494059332023295,
+        "intercept": -53.204684273218795,
+        "low_slope": 0.02165290017566072,
+        "high_slope": 0.03140449339025365,
+        "slope_per_decade": 0.26494059332023295,
+        "low_slope_per_decade": 0.21652900175660722,
+        "high_slope_per_decade": 0.31404493390253646,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_b": {
+        "slope": 0.02777744943764466,
+        "intercept": -55.78565777054331,
+        "low_slope": 0.02305242113821155,
+        "high_slope": 0.03260119000000056,
+        "slope_per_decade": 0.2777744943764466,
+        "low_slope_per_decade": 0.23052421138211548,
+        "high_slope_per_decade": 0.32601190000000557,
+        "confidence": 0.95,
+        "method": "separate",
+        "n": 540,
+        "t_start": 1981.0416666666667,
+        "t_end": 2025.9583333333333
+      },
+      "slope_diff": -0.012833901056213626,
+      "slope_allowance": 0.1,
+      "intervals_overlap": true,
+      "checks": {
+        "anomaly_r": true,
+        "abs_bias": true,
+        "slope_diff": true
+      },
+      "passed": true,
+      "tolerances": {
+        "min_anomaly_r": 0.95,
+        "max_abs_bias": 1.0,
+        "slope_abs": 0.1,
+        "slope_rel": 0.25
+      }
+    }
+  }
+}

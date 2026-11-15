@@ -4,6 +4,8 @@ Puts climate-trend claims on trial against NASA data (POWER, MERRA-2, GLDAS, FLD
 
 - `trendcourt/clerk.py`: data loading, cleaning, aggregation, deseasonalizing
 - `trendcourt/examiner.py`: trend statistics (Theil–Sen, OLS, Mann–Kendall variants)
+- `trendcourt/crosscheck.py`: Gate 1 cross-checks against reference series (Giovanni MERRA-2)
+- `scripts/gate1_giovanni.py`: reruns Gate 1 (b) and writes `docs/gate1/`
 - `data/`: raw downloads and region definitions
 - `docs/`: method notes
 

@@ -216,3 +216,71 @@ def test_unknown_region_and_variable():
         clerk.load_power_region("atlantis", "temperature")
     with pytest.raises(KeyError):
         clerk.power_code("wind")
+
+
+# --- load_giovanni_csv ------------------------------------------------------
+
+GIOVANNI_HEADER = """Title:,"Time Series, Area-Averaged of 2-meter air temperature"
+User Start Date:,1981-01-01T00:00:00Z
+User End Date:,1981-06-30T23:59:59Z
+User Bounding Box:,"-116,31.9,-114.8,33.1"
+Data Bounding Box:,"-115.625,32,-115,33"
+URL to Reproduce Results:,"https://giovanni.gsfc.nasa.gov/giovanni/#bbox=-116,31.9,-114.8,33.1"
+Fill Value (mean_M2TMNXSLV_5_12_4_T2M):, 1000000000000000
+
+time, mean_M2TMNXSLV_5_12_4_T2M
+"""
+
+
+def write_giovanni(tmp_path, rows):
+    path = tmp_path / "g.csv"
+    path.write_text(GIOVANNI_HEADER + "".join(f"{t},{v}\n" for t, v in rows))
+    return path
+
+
+def test_load_giovanni_skips_header_converts_kelvin_and_masks_fill(tmp_path):
+    path = write_giovanni(tmp_path, [
+        ("1981-01-01 00:00:00", "273.15"),
+        ("1981-02-01 00:00:00", "1000000000000000"),
+        ("1981-03-01 00:00:00", "300.0"),
+        # April absent from the file
+        ("1981-05-01 00:00:00", "1e+15"),
+        ("1981-06-01 00:00:00", "250.65"),
+    ])
+    s = clerk.load_giovanni_csv(path)
+
+    assert isinstance(s.index, pd.DatetimeIndex)
+    assert s.index.name == "time"
+    assert list(s.index) == list(pd.date_range("1981-01-01", periods=6, freq="MS"))
+    np.testing.assert_allclose(s.to_numpy(), [0.0, np.nan, 26.85, np.nan, np.nan, -22.5], equal_nan=True)
+
+
+def test_read_giovanni_header_parses_boxes_and_fill(tmp_path):
+    h = clerk.read_giovanni_header(write_giovanni(tmp_path, [("1981-01-01 00:00:00", "280")]))
+    assert h.user_bbox == (-116.0, 31.9, -114.8, 33.1)
+    assert h.data_bbox == (-115.625, 32.0, -115.0, 33.0)
+    assert h.fill_value == 1e15
+    assert h.column == "mean_M2TMNXSLV_5_12_4_T2M"
+    assert h.n_header_lines == 8
+
+
+def test_load_giovanni_rejects_mid_month_timestamps(tmp_path):
+    path = write_giovanni(tmp_path, [("1981-01-15 00:00:00", "280"), ("1981-02-15 00:00:00", "281")])
+    with pytest.raises(ValueError, match="month starts"):
+        clerk.load_giovanni_csv(path)
+
+
+def test_load_giovanni_without_time_row_raises(tmp_path):
+    path = tmp_path / "bad.csv"
+    path.write_text("Title:,x\n1981-01-01,280\n")
+    with pytest.raises(ValueError, match="'time'"):
+        clerk.load_giovanni_csv(path)
+
+
+@pytest.mark.parametrize("region", ["mexicali", "iberia", "amazon"])
+def test_load_giovanni_real_files(region):
+    s = clerk.load_giovanni_csv(clerk.GIOVANNI_DIR / f"{region}_M2TMNXSLV_T2M.csv")
+    assert s.index[0] == pd.Timestamp("1981-01-01")
+    assert s.index[-1] == pd.Timestamp("2025-12-01")
+    assert len(s) == 540 and s.notna().all()
+    assert -10 < s.min() and s.max() < 45  # °C, not Kelvin
