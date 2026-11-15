@@ -1,4 +1,8 @@
+import json
 import math
+import subprocess
+import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -143,6 +147,50 @@ def test_compare_all_requires_the_record_behind_a_slope():
         knmi.compare_all({"cases": {"iberia": {"annual": entry}}})
 
 
+@pytest.mark.parametrize("slope, resolution", [(0.0, 0.1), (0.03, 0.01), (0.0, 1.0)])
+def test_compare_coarse_display_is_inconclusive_not_a_pass(slope, resolution):
+    t = np.arange(1981, 2026, dtype=float)
+    ours = examiner.ols(t, 0.034384 * t + 0.01 * np.sin(t))  # iberia annual
+    c = knmi.compare("iberia", "annual", {"slope": slope, "units": "per_year", "resolution": resolution}, ours)
+    assert not c.passed
+    assert c.inconclusive and c.bound == "inconclusive"
+    assert knmi.gate_status([c] + [_row(True)] * 5, []) == knmi.GATE_PENDING
+
+
+@pytest.mark.parametrize("region", knmi.CASES)
+@pytest.mark.parametrize("series", knmi.SERIES)
+def test_three_decimal_per_year_display_is_decisive_for_our_slopes(region, series):
+    ours = knmi.series_for(region)["ols"][series]
+    c = knmi.compare(region, series, {"slope": round(ours.slope, 3), "units": "per_year", "resolution": 0.001}, ours)
+    assert c.passed and not c.inconclusive
+
+
+def _filled(evidence):
+    return {"slope": 0.034, "units": "per_year", "resolution": 0.001, "knmi_settings": "together", "evidence": evidence}
+
+
+def test_compare_all_requires_evidence_file_under_docs_gate1(tmp_path):
+    (tmp_path / "docs" / "gate1").mkdir(parents=True)
+    (tmp_path / "docs" / "gate1" / "knmi_iberia_annual.png").write_bytes(b"png")
+    (tmp_path / "elsewhere.png").write_bytes(b"png")
+    for bad in ("docs/gate1/never_committed.png", "elsewhere.png", "docs/gate1/../../elsewhere.png", "docs/gate1"):
+        with pytest.raises(ValueError, match="evidence"):
+            knmi.compare_all({"cases": {"iberia": {"annual": _filled(bad)}}}, root=tmp_path)
+    rows = knmi.compare_all({"cases": {"iberia": {"annual": _filled("docs/gate1/knmi_iberia_annual.png")}}}, root=tmp_path)
+    assert len(rows) == 1 and rows[0].passed
+
+
+def test_compare_script_exits_3_on_a_malformed_entry(tmp_path):
+    slopes = knmi.load_knmi_slopes()
+    slopes["cases"]["iberia"]["annual"]["slope"] = 0.034  # no resolution, settings or evidence
+    path = tmp_path / "slopes.json"
+    path.write_text(json.dumps(slopes), encoding="utf-8")
+    script = Path(__file__).resolve().parents[1] / "scripts" / "knmi_compare.py"
+    proc = subprocess.run([sys.executable, str(script), str(path)], capture_output=True, text=True)
+    assert proc.returncode == knmi.GATE_INVALID == 3
+    assert "INVALID" in proc.stderr and "resolution" in proc.stderr
+
+
 # --- gate status / exit code ----------------------------------------------
 
 
@@ -172,6 +220,10 @@ def test_gate_status_outcomes():
     # a failure is reported even while other entries are pending
     assert knmi.gate_status([_row(True), _row(False)], [("x", "s")] * 4) == knmi.GATE_FAIL == 1
     assert knmi.gate_status([_row(False)] + [_row(True)] * 5, []) == knmi.GATE_FAIL
+    # inconclusive rows are pending, but do not mask a real failure
+    inconclusive = knmi.Comparison("x", "annual", 0.3, 0.0, None, 0.3, 1.0, 0.5, "inconclusive", knmi.REL_TOL, False, True)
+    assert knmi.gate_status([inconclusive] + [_row(True)] * 5, []) == knmi.GATE_PENDING
+    assert knmi.gate_status([inconclusive, _row(False)] + [_row(True)] * 4, []) == knmi.GATE_FAIL
 
 
 def test_committed_slopes_file_accounts_for_every_entry():

@@ -25,6 +25,7 @@ CASES = ("mexicali", "iberia", "amazon")
 VAR = "temperature"
 MISSING = -999.9
 REL_TOL = 0.01  # identical input: slopes agree to within 1%, or half a KNMI display step (docs/gate1.md)
+MAX_DISPLAY_REL = 2 * REL_TOL  # a display step coarser than this (half-step / |ours|) cannot decide the gate
 UPLOAD_DIR = clerk.DATA_DIR / "knmi" / "upload"
 SLOPES_FILE = clerk.REPO_ROOT / "docs" / "gate1" / "knmi_slopes.json"
 SERIES = ("monthly", "annual")
@@ -127,7 +128,9 @@ def export(region: str, out_dir: Path = UPLOAD_DIR) -> list[Path]:
 
 GATE_PASS = 0  # every case and series filled in, all within tolerance
 GATE_FAIL = 1  # at least one filled-in entry is outside tolerance
-GATE_PENDING = 2  # nothing out of tolerance, but some entries still await KNMI
+GATE_PENDING = 2  # nothing out of tolerance, but some entries await KNMI or are inconclusive
+GATE_INVALID = 3  # knmi_slopes.json has a malformed entry (raised as ValueError; see scripts/knmi_compare.py)
+EVIDENCE_SUBDIR = Path("docs") / "gate1"
 REQUIRED_RECORD = ("resolution", "knmi_settings", "evidence")
 
 
@@ -141,9 +144,10 @@ class Comparison:
     abs_diff: float  # |KNMI - ours|, per decade
     rel_diff: float
     allowed: float  # max(rel_tol * |ours|, resolution / 2), per decade
-    bound: str  # "relative" or "display" (which term of ``allowed`` applied)
+    bound: str  # "relative", "display", or "inconclusive" (display step too coarse to decide)
     tolerance: float
     passed: bool
+    inconclusive: bool = False  # True: not a pass and not a fail; re-read KNMI with more digits
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -177,6 +181,10 @@ def compare(region: str, series: str, knmi: dict, ours: examiner.OLSResult, tole
     ``stderr`` in the same units. Passes when, per decade,
     ``|knmi - ours| <= max(tolerance * |ours|, resolution / 2)``: a correct
     slope can be off by up to half a display step after rounding.
+
+    The display term is capped: if ``resolution / 2`` exceeds
+    ``MAX_DISPLAY_REL * |ours|`` the display is too coarse to tell a correct
+    slope from a wrong one, and the row is ``inconclusive`` (never passed).
     """
     if series not in SERIES:
         raise ValueError(f"series must be one of {SERIES}, got {series!r}")
@@ -190,6 +198,11 @@ def compare(region: str, series: str, knmi: dict, ours: examiner.OLSResult, tole
     diff = abs(knmi_slope - ours_slope)
     rel_bound = tolerance * abs(ours_slope)
     display_bound = resolution / 2
+    if display_bound > MAX_DISPLAY_REL * abs(ours_slope):
+        return Comparison(
+            region, series, ours_slope, knmi_slope, knmi_stderr,
+            diff, diff / abs(ours_slope), display_bound, "inconclusive", tolerance, False, True,
+        )
     bound, allowed = ("display", display_bound) if display_bound > rel_bound else ("relative", rel_bound)
     return Comparison(
         region, series, ours_slope, knmi_slope, knmi_stderr,
@@ -202,11 +215,19 @@ def load_knmi_slopes(path: Path = SLOPES_FILE) -> dict:
         return json.load(fh)
 
 
-def compare_all(slopes: dict) -> list[Comparison]:
+def _check_evidence(region: str, series: str, evidence: str, root: Path) -> None:
+    path = (root / evidence).resolve()
+    if not path.is_relative_to((root / EVIDENCE_SUBDIR).resolve()) or not path.is_file():
+        raise ValueError(f"{region} {series}: evidence {evidence!r} is not an existing file under docs/gate1/")
+
+
+def compare_all(slopes: dict, root: Path = clerk.REPO_ROOT) -> list[Comparison]:
     """Compare every filled-in KNMI entry; entries with ``slope: null`` are skipped.
 
     A filled-in entry must also record ``resolution``, ``knmi_settings`` and
-    ``evidence``, so a pass is always backed by what KNMI showed.
+    ``evidence`` (a repo-relative path to an existing file under
+    ``docs/gate1/``), so a pass is always backed by what KNMI showed.
+    Malformed entries raise ``ValueError``.
     """
     out = []
     for region, by_series in slopes["cases"].items():
@@ -217,6 +238,7 @@ def compare_all(slopes: dict) -> list[Comparison]:
             missing = [k for k in REQUIRED_RECORD if knmi.get(k) in (None, "")]
             if missing:
                 raise ValueError(f"{region} {series}: slope filled in but {', '.join(missing)} missing")
+            _check_evidence(region, series, knmi["evidence"], root)
         ours = series_for(region)["ols"]
         for series, knmi in filled.items():
             out.append(compare(region, series, knmi, ours[series], slopes.get("tolerance", REL_TOL)))
@@ -236,10 +258,11 @@ def pending_entries(slopes: dict) -> list[tuple[str, str]]:
 
 def gate_status(rows: list[Comparison], pending: list[tuple[str, str]]) -> int:
     """Exit code for Gate 1 (c): ``GATE_FAIL`` if any compared entry fails,
-    else ``GATE_PENDING`` while any entry awaits KNMI, else ``GATE_PASS``."""
-    if any(not r.passed for r in rows):
+    else ``GATE_PENDING`` while any entry awaits KNMI or is inconclusive,
+    else ``GATE_PASS``."""
+    if any(not r.passed and not r.inconclusive for r in rows):
         return GATE_FAIL
-    if pending or not rows:
+    if pending or not rows or any(r.inconclusive for r in rows):
         return GATE_PENDING
     return GATE_PASS
 
@@ -253,7 +276,7 @@ def markdown_table(rows: list[Comparison]) -> str:
         f"| {c.region} | {c.series} | {c.ours_per_decade:.4f} | {c.knmi_per_decade:.4f} | "
         f"{'—' if c.knmi_stderr_per_decade is None else f'{c.knmi_stderr_per_decade:.4f}'} | "
         f"{c.abs_diff:.4f} | {c.allowed:.4f} ({c.bound}) | "
-        f"{c.rel_diff:.2%} | {'yes' if c.passed else '**no**'} |"
+        f"{c.rel_diff:.2%} | {'yes' if c.passed else ('inconclusive' if c.inconclusive else '**no**')} |"
         for c in rows
     ]
     return "\n".join([head, *body])

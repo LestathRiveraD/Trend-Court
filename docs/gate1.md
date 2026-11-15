@@ -62,7 +62,18 @@ as `0.033` is 1.32% off, yet both are correct. At our slopes (about
 0.33–0.39 °C/decade), 1% is about 0.0035 °C/decade. A display of 3
 decimals in °C/yr widens that to 0.005 °C/decade; 4 decimals in °C/yr, or
 3 in °C/decade, leaves the 1% bound in force. The comparison table says
-which bound applied to each row. Apart from display rounding, any
+which bound applied to each row.
+
+**The display allowance is capped at 2%.** If `resolution / 2` exceeds
+`MAX_DISPLAY_REL · |ours|` (`knmi.MAX_DISPLAY_REL = 2 · REL_TOL = 0.02`,
+per decade), the display is too coarse to tell a correct slope from a wrong
+one. That row is **inconclusive**: it is never a pass, and the gate stays
+pending until the slope is read again with more digits (a per-decade or
+per-century display, or KNMI's raw output). The cap admits a 3-decimal
+°C/yr display for all six of our slopes (half a step is 1.28–1.50% of
+them) and rejects a 2-decimal one (12.8–15.0%), as well as a mistyped
+coarse `resolution` (for example, a KNMI slope of `0.0` with resolution
+`0.1` is inconclusive, not a pass). Apart from display rounding, any
 remaining difference can only come from the time axis.
 
 KNMI's standard error is recorded but is not a pass criterion. KNMI may
@@ -115,10 +126,13 @@ if the live site differs.
    - `knmi_settings`: every choice from step 3, verbatim as KNMI labels
      it, for example `"starting month: together; season length: 1;
      anomalies: off; detrend: off; years: 1981-2025; units: original"`;
-   - `url`, `accessed_utc`, and `evidence` (path of the saved page).
+   - `url`, `accessed_utc`, and `evidence`: the repo-relative path of the
+     saved page, which must be an existing file under `docs/gate1/`
+     (commit it with the JSON).
 
    `knmi_compare.py` refuses a filled-in `slope` without `resolution`,
-   `knmi_settings` and `evidence`, and a `slope` with more digits than
+   `knmi_settings` and `evidence`, an `evidence` path that is not an
+   existing file under `docs/gate1/`, and a `slope` with more digits than
    `resolution` allows.
 7. Run `python scripts/knmi_compare.py`. It prints the table below and
    exits with:
@@ -127,7 +141,11 @@ if the live site differs.
    - **1**: at least one filled-in entry is outside tolerance (even if
      others are still pending).
    - **2**: nothing is out of tolerance, but some or all entries are still
-     pending. Partial results never exit 0.
+     pending or inconclusive (display too coarse; see the 2% cap above).
+     Partial results never exit 0.
+   - **3**: `knmi_slopes.json` has a malformed entry (missing field, bad
+     units or resolution, missing evidence file). The message says which;
+     fix the entry and run it again.
 
 ### Our slopes (awaiting KNMI)
 
