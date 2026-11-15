@@ -1,6 +1,6 @@
 """Synthetic benchmark experiments (``project.md`` §3, validation).
 
-    python scripts/benchmark.py --experiment {fpr,coverage,power} [--replicates 1000]
+    python scripts/benchmark.py --experiment {fpr,coverage,power,applied,noise} [--replicates 1000]
                                 [--seed S] [--workers N] [--out PATH]
 
 ``fpr``: rejection rate of the Hamed–Rao and correlated seasonal
@@ -14,13 +14,29 @@ on ``--workers``. Prints a summary table and the run time to stderr.
 ``coverage``: share of replicates whose Theil–Sen 95% interval contains
 the injected slope, over phi in {0, 0.3, 0.6, 0.8, 0.9}, slopes of 0.1,
 0.3 and 0.5 noise SDs per decade and 20, 30 and 45 years. Cells below
-0.93 are flagged, with the phi at which that starts. Writes
-``docs/benchmark/coverage.json`` (:func:`trendcourt.benchmark.coverage_experiment`).
+0.93 are flagged, with the phi at which that starts. Also the coverage
+of the interval widened as the no-trend rule widens it, with ``r1``
+estimated from each replicate. Writes ``docs/benchmark/coverage.json``
+(:func:`trendcourt.benchmark.coverage_experiment`).
 
 ``power``: Hamed–Rao rejection rate at alpha 0.05 and 0.01 by record
 length (20 to 45 years in steps of 5), slope / noise SD (0.1, 0.2, 0.3,
 0.5 per decade) and phi. Writes ``docs/benchmark/power.json``
 (:func:`trendcourt.benchmark.power_experiment`).
+
+``applied``: the verdict policy of ``trendcourt/thresholds.json`` as it
+will be applied (band from each record's own estimated ``r1``) on
+trend-free AR(1) series, true phi in {0, 0.3, 0.5, 0.6, 0.7, 0.75, 0.8,
+0.85, 0.9, 0.95} and 20, 30, 45 years: false-claim and false-Strong rates
+and the widened interval's coverage. Writes ``docs/benchmark/applied.json``
+(:func:`trendcourt.benchmark.applied_experiment`).
+
+``noise``: per real case, the ACF of the detrended anomalies against
+AR(1), an AR(p) noise model fitted to it, and the same policy on
+trend-free records simulated from that model. Writes
+``docs/benchmark/noise.json`` (:func:`trendcourt.benchmark.noise_experiment`);
+the caveat flags derived from it go in ``thresholds.json``
+(``noise_caveats``, :func:`trendcourt.thresholds.derive_noise_caveats`).
 
 Every experiment uses ``benchmark.synthetic_series`` and
 ``benchmark.run_case``; ``--seed`` defaults to the experiment's own
@@ -35,7 +51,9 @@ and regenerates the tables in ``docs/benchmark.md``
 (:mod:`trendcourt.benchmark_report`). The no-trend columns of Table 6
 also read the committed real-case records in ``data/`` (``clerk.prepare``).
 Fails if the bands in ``thresholds.json`` differ from
-``thresholds.derive_bands`` on ``fpr.json``.
+``thresholds.derive_bands`` on ``fpr.json``, if ``noise_caveats`` differ
+from ``thresholds.derive_noise_caveats`` on ``noise.json``, or if
+``applied.json`` or ``noise.json`` were run with other thresholds.
 """
 
 import argparse
@@ -57,6 +75,8 @@ DEFAULTS = {
     "fpr": (benchmark.FPR_REPLICATES, benchmark.FPR_SEED),
     "coverage": (benchmark.COVERAGE_REPLICATES, benchmark.COVERAGE_SEED),
     "power": (benchmark.POWER_REPLICATES, benchmark.POWER_SEED),
+    "applied": (benchmark.APPLIED_REPLICATES, benchmark.APPLIED_SEED),
+    "noise": (benchmark.NOISE_REPLICATES, benchmark.NOISE_SEED),
 }
 
 
@@ -141,6 +161,45 @@ def run_power(args) -> int:
     return 0
 
 
+def run_applied(args) -> int:
+    t0 = time.perf_counter()
+    result = _stamp(benchmark.applied_experiment(args.replicates, seed=args.seed, workers=args.workers))
+    elapsed = time.perf_counter() - t0
+    _write(result, args.out)
+
+    err = sys.stderr
+    print(f"{'phi':>5} {'yrs':>3}  {'false claim':<26}{'false Strong':<26}{'widened cov (est r1)':<26}"
+          f"{'r1 mean':>8}{'r1 sd':>7}  fail", file=err)
+    for c in result["cells"]:
+        print(f"{c['phi']:>5} {c['n_years']:>3}  {_ci(c['false_claim']):<26}{_ci(c['false_strong']):<26}"
+              f"{_ci(c['widened_coverage']):<26}{c['r1_detrended_mean']:>8.3f}{c['r1_detrended_sd']:>7.3f}"
+              f"  {c['n_failed']}", file=err)
+    print(f"\nwrote {args.out} in {elapsed:.0f} s with {args.workers} worker(s)", file=err)
+    return 0
+
+
+def run_noise(args) -> int:
+    from trendcourt import thresholds
+
+    t0 = time.perf_counter()
+    result = _stamp(benchmark.noise_experiment(args.replicates, seed=args.seed, workers=args.workers))
+    elapsed = time.perf_counter() - t0
+    _write(result, args.out)
+
+    err = sys.stderr
+    print(f"{'case':<28}{'AR':>3}{'VIF ratio':>10}{'widen AR(p)/AR(1)':>19}  {'false claim':<26}"
+          f"{'FPR @0.01':<26}{'widened cov':<26}fail", file=err)
+    for c in result["cases"]:
+        print(f"{c['region'] + '/' + c['variable']:<28}{c['ar_order']:>3}{c['vif_ratio']:>10.2f}"
+              f"{c['ar_widening']:>9.2f} / {c['ar1_widening']:<7.2f}  {_ci(c['false_claim']):<26}"
+              f"{_ci(c['fpr']['0.01']):<26}{_ci(c['widened_coverage']):<26}{c['n_failed']}", file=err)
+    caveats = thresholds.derive_noise_caveats(result)
+    print("\nnoise_caveats for thresholds.json:", file=err)
+    print(json.dumps(caveats, indent=2), file=err)
+    print(f"\nwrote {args.out} in {elapsed:.0f} s with {args.workers} worker(s)", file=err)
+    return 0
+
+
 def run_figures(args) -> int:
     from trendcourt import benchmark_report, thresholds
 
@@ -176,7 +235,8 @@ def main(argv=None) -> int:
         args.out = OUT_DIR / f"{args.experiment}.json"
     if args.replicates < 1 or args.workers < 1:
         ap.error("--replicates and --workers must be at least 1")
-    return {"fpr": run_fpr, "coverage": run_coverage, "power": run_power}[args.experiment](args)
+    return {"fpr": run_fpr, "coverage": run_coverage, "power": run_power,
+            "applied": run_applied, "noise": run_noise}[args.experiment](args)
 
 
 if __name__ == "__main__":
