@@ -34,6 +34,9 @@
   --c-band: rgba(255,201,60,.55);
   --c-witness: #FF5DAA;
   --c-grid: #E6EAF8;
+  /* check status text (AA on white) */
+  --pass: #007563;
+  --fail: #C9252F;
 
   --radius: 18px;
   --stroke: 2.5px solid var(--ink);
@@ -134,11 +137,46 @@ button:focus-visible { outline: 3px solid var(--bubble); outline-offset: 3px; }
 .nowrap { white-space: nowrap; }
 .plot { width: 100%; min-width: 0; min-height: 300px; overflow: hidden; }
 
-.pill {
-  display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 999px; border: var(--stroke);
-  font-family: var(--display); font-weight: 600; background: var(--v-moderate); color: var(--v-moderate-on);
+/* Verdict card (#25). Each label has its own colour and icon, and the label text is always printed. */
+.card { display: grid; gap: 12px; min-width: 0; }
+.label {
+  justify-self: start; display: inline-flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 700;
+  padding: 6px 16px 6px 10px; border: var(--stroke); border-radius: 999px; box-shadow: 3px 3px 0 var(--ink);
 }
-.p-insufficient { border-style: dashed; background: repeating-linear-gradient(135deg, var(--surface) 0 6px, var(--v-insufficient) 6px 10px); color: var(--ink); }
+.label-icon { flex: none; }
+.v-strong .label { background: var(--v-strong); color: var(--v-strong-on); }
+.v-moderate .label { background: var(--v-moderate); color: var(--v-moderate-on); }
+.v-inconclusive .label { background: var(--v-inconclusive); color: var(--v-inconclusive-on); }
+.v-disagree .label { background: var(--v-disagree); color: var(--v-disagree-on); }
+.v-none .label { background: var(--v-none); color: var(--v-none-on); }
+.v-insufficient .label {
+  border-style: dashed; color: var(--ink);
+  background: repeating-linear-gradient(135deg, var(--surface) 0 6px, var(--v-insufficient) 6px 10px);
+}
+.reason { font-size: 16px; }
+.numbers { display: grid; gap: 6px; margin: 0; padding: 10px 12px; background: var(--bg); border-radius: 12px; }
+.numbers > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
+.numbers dt { font-size: 13px; color: var(--muted); }
+.numbers dd { margin: 0; font-family: var(--mono); font-size: 14px; text-align: right; }
+.capped { font-size: 14px; background: var(--sky); border-left: 4px solid var(--indigo); border-radius: 8px; padding: 6px 10px; }
+.checks { display: grid; gap: 6px; }
+.checks ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.check { display: grid; gap: 1px; padding-left: 10px; border-left: 4px solid var(--line); }
+.check-status { font-family: var(--display); font-weight: 600; font-size: 13px; }
+.check-title { font-weight: 700; font-size: 14.5px; }
+.check-value { font-family: var(--mono); font-size: 12.5px; overflow-wrap: anywhere; }
+.s-pass { border-left-color: var(--pass); } .s-pass .check-status { color: var(--pass); }
+.s-fail { border-left-color: var(--fail); } .s-fail .check-status { color: var(--fail); }
+.s-pending { border-left-style: dashed; } .s-pending .check-status { color: var(--muted); }
+.caveat { font-size: 13.5px; background: #FFF4D6; border: 2px solid var(--sun-text); border-radius: 10px; padding: 6px 10px; }
+.signature { display: grid; gap: 2px; border-top: 2px dashed var(--line); padding-top: 10px; }
+.sig-by { font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--indigo); }
+.sig-on { font-size: 13px; color: var(--muted); }
+.footnote { font-size: 12.5px; color: var(--muted); }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 
 .error { background: #FFE0EF; border: var(--stroke); border-radius: 14px; padding: 12px 16px; overflow-wrap: anywhere; }
 footer { font-size: 13.5px; color: var(--muted); text-align: center; }
