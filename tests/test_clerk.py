@@ -284,3 +284,151 @@ def test_load_giovanni_real_files(region):
     assert s.index[-1] == pd.Timestamp("2025-12-01")
     assert len(s) == 540 and s.notna().all()
     assert -10 < s.min() and s.max() < 45  # °C, not Kelvin
+
+
+# --- witness B (real files, no network) --------------------------------------
+
+REGIONS = ["mexicali", "mexico_city", "yucatan", "sahel", "amazon", "iberia"]
+WITNESS_VARS = ["temperature", "precipitation"]
+
+
+@pytest.mark.parametrize("region", REGIONS)
+@pytest.mark.parametrize("var", WITNESS_VARS)
+def test_witness_loads_every_region_whole_years_no_nan_in_shared_period(region, var):
+    b = clerk.load_witness(region, var)
+    assert isinstance(b.index, pd.DatetimeIndex)
+    assert (b.index == b.index.to_period("M").start_time).all()
+    assert b.index[0] == pd.Timestamp("1981-01-01")
+    assert b.index[-1] == pd.Timestamp("2025-12-01")
+    assert len(b) % 12 == 0
+
+    p = clerk.prepare_witness(region, var)
+    assert p.raw.notna().all() and p.anomalies.notna().all()
+    assert len(p.shared) % 12 == 0
+    assert p.shared[0].month == 1 and p.shared[-1].month == 12
+    assert len(p.raw) == len(p.anomalies) == len(p.time) == len(p.n_cells) == len(p.shared)
+    assert (p.n_cells == p.provenance.grid.n_cells).all()
+    assert p.quality.passed
+    np.testing.assert_allclose(
+        p.anomalies.groupby(p.anomalies.index.month).mean(), 0.0, atol=1e-10)
+
+
+def test_witness_spot_check_matches_hand_computation_from_netcdf_cells():
+    import netCDF4
+
+    # GPCP Mexicali, July 2000: 2.5 deg cells centered at 31.25/33.75 N and
+    # 243.75/246.25 E (-116.25/-113.75). Region box 31.9..33.1 N, -116..-114.8.
+    with netCDF4.Dataset(clerk.REPO_ROOT / "data/raw/witness/gpcp_v23/mexicali.nc") as nc:
+        nc.set_auto_maskandscale(False)
+        times = netCDF4.num2date(nc["time"][:], nc["time"].units)
+        k = next(i for i, t in enumerate(times) if (t.year, t.month) == (2000, 7))
+        cell = {(float(la), float(lo)): float(nc["precip"][k, i, j])
+                for i, la in enumerate(nc["lat"][:]) for j, lo in enumerate(nc["lon"][:])}
+
+    # share of each cell inside the box: lat cell 30..32.5 -> 0.6/2.5, 32.5..35 -> 0.6/2.5;
+    # lon cell -117.5..-115 -> 1.0/2.5, -115..-112.5 -> 0.2/2.5
+    f_lat = {31.25: 0.6 / 2.5, 33.75: 0.6 / 2.5}
+    f_lon = {243.75: 1.0 / 2.5, 246.25: 0.2 / 2.5}
+    w = {(la, lo): np.cos(np.deg2rad(la)) * f_lat[la] * f_lon[lo] for la, lo in cell}
+    expected = sum(w[c] * cell[c] for c in cell) / sum(w.values())
+
+    got = clerk.load_witness("mexicali", "precipitation").loc["2000-07-01"]
+    assert got == pytest.approx(expected, rel=1e-6)
+
+
+def test_witness_spot_check_temperature_cells_inside_box():
+    import netCDF4
+
+    # GHCN_CAMS Amazon, Jan 1990: the 0.5 deg cells tile the box exactly
+    # (-4..-2 N, -61..-59 E), so it is a plain cos(lat) mean of 16 cells, in degC.
+    with netCDF4.Dataset(clerk.REPO_ROOT / "data/raw/witness/ghcncams/amazon.nc") as nc:
+        nc.set_auto_maskandscale(False)
+        times = netCDF4.num2date(nc["time"][:], nc["time"].units)
+        k = next(i for i, t in enumerate(times) if (t.year, t.month) == (1990, 1))
+        lats, lons = np.asarray(nc["lat"][:], float), np.asarray(nc["lon"][:], float) - 360
+        air = np.asarray(nc["air"][k], float)
+    li = (lats > -4) & (lats < -2)
+    lj = (lons > -61) & (lons < -59)
+    w = np.cos(np.deg2rad(lats[li]))[:, None] * np.ones(lj.sum())
+    expected = (air[np.ix_(li, lj)] * w).sum() / w.sum() - 273.15
+
+    grid = clerk.load_witness_grid("amazon", "temperature")[2]
+    assert grid.n_cells == 16
+    assert clerk.load_witness("amazon", "temperature").loc["1990-01-01"] == pytest.approx(expected, rel=1e-6)
+
+
+def test_witness_temperature_is_celsius():
+    b = clerk.load_witness("mexicali", "temperature")
+    july = b[b.index.month == 7].mean()
+    assert 25 < july < 40
+
+
+def test_witness_soil_moisture_is_none():
+    assert clerk.load_witness("mexicali", "soil_moisture") is None
+    assert clerk.load_witness("mexicali", "GWETROOT") is None
+    assert clerk.prepare_witness("mexicali", "soil_moisture") is None
+
+
+def test_witness_accepts_power_code():
+    pd.testing.assert_series_equal(
+        clerk.load_witness("iberia", "T2M"), clerk.load_witness("iberia", "temperature"))
+
+
+def test_witness_grid_records_cells_and_covered_box():
+    _, _, grid = clerk.load_witness_grid("mexicali", "precipitation")
+    assert grid.region_box == (31.9, -116.0, 33.1, -114.8)
+    assert grid.requested_box == (30.65, -117.25, 34.35, -113.55)
+    assert grid.covered_box == (30.0, -117.5, 35.0, -112.5)
+    assert grid.grid_step == (2.5, 2.5)
+    assert grid.n_cells == 4
+    assert sum(c[2] for c in grid.cells) == pytest.approx(1.0)
+    assert all(-180 <= c[1] <= 180 for c in grid.cells)
+    assert grid.source_units == "mm/day"
+
+    # GHCN_CAMS: a cell centered outside the box with no overlap is dropped
+    _, _, t = clerk.load_witness_grid("mexicali", "temperature")
+    assert all(lon != -116.25 for _, lon, _ in t.cells)
+    assert t.covered_box == (31.5, -116.0, 33.5, -114.5)
+
+
+def test_witness_provenance():
+    manifest = clerk.load_witness_manifest()
+    t = clerk.prepare_witness("sahel", "temperature").provenance
+    p = clerk.prepare_witness("sahel", "precipitation").provenance
+
+    assert t.independence == "independent"
+    assert p.independence == "partly_independent"
+    assert t.dataset_name == manifest["datasets"]["ghcncams"]
+    assert p.dataset_name == manifest["datasets"]["gpcp_v23"]
+    assert t.accessed_utc == p.accessed_utc == manifest["accessed_utc"]
+    assert t.url.startswith("https://psl.noaa.gov/") and "ghcncams" in t.url
+    assert t.units == "degC" and t.source_units == "degK"
+    assert t.period == "1981-01 to 2025-12"
+    assert "Independent of POWER" in t.clerk_text()
+    assert "Partly independent of POWER" in p.clerk_text()
+
+
+def test_mask_invalid_handles_fill_missing_and_valid_range():
+    attrs = {"missing_value": np.float32(-9.96921e36), "_FillValue": np.float32(1e20),
+             "valid_range": np.array([150.0, 400.0], dtype=np.float32)}
+    raw = np.array([np.float32(-9.96921e36), np.float32(1e20), 100.0, 300.0, 500.0], dtype=np.float32)
+    out = clerk._mask_invalid(raw, attrs)
+    assert np.isnan(out[[0, 1, 2, 4]]).all()
+    assert out[3] == 300.0
+
+
+def test_prepare_witness_restricts_to_shared_months():
+    a = clerk.prepare("yucatan", "precipitation").raw.copy()
+    a.loc["1995-01-01":"1995-12-01"] = np.nan  # a hole in witness A
+    a = a.loc[:"2020-12-01"]  # witness A ends early
+
+    p = clerk.prepare_witness("yucatan", "precipitation", witness_a=a)
+    assert p.shared[-1] == pd.Timestamp("2020-12-01")
+    assert not any(t.year == 1995 for t in p.shared)
+    assert len(p.raw) == (40 - 1) * 12
+    assert p.quality.n_missing == 12  # the 1995 hole counts against the gate
+    full = clerk.load_witness("yucatan", "precipitation")
+    pd.testing.assert_series_equal(p.raw, full.loc[p.shared], check_names=False)
+    # climatology over the shared months only
+    np.testing.assert_allclose(
+        p.climatology.to_numpy(), p.raw.groupby(p.raw.index.month).mean().to_numpy())
