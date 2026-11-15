@@ -400,12 +400,77 @@ def test_witness_provenance():
     assert p.independence == "partly_independent"
     assert t.dataset_name == manifest["datasets"]["ghcncams"]
     assert p.dataset_name == manifest["datasets"]["gpcp_v23"]
-    assert t.accessed_utc == p.accessed_utc == manifest["accessed_utc"]
+    assert t.accessed_utc == manifest["accessed_utc"]
+    # GPCP Sahel was re-fetched (see the manifest note); it carries its own access time
+    entry = next(f for f in manifest["files"] if (f["dataset"], f["region"]) == ("gpcp_v23", "sahel"))
+    assert p.accessed_utc == entry["accessed_utc"] != manifest["accessed_utc"]
+    assert "west=1.25" in p.url
     assert t.url.startswith("https://psl.noaa.gov/") and "ghcncams" in t.url
     assert t.units == "degC" and t.source_units == "degK"
     assert t.period == "1981-01 to 2025-12"
     assert "Independent of POWER" in t.clerk_text()
     assert "Partly independent of POWER" in p.clerk_text()
+
+
+def test_witness_sahel_precipitation_cells_and_covered_box():
+    # GPCP native centers are 1.25 + 2.5k. Box 12.5..14.5 N, 1..3 E: only the
+    # 13.75 N row overlaps (12.5..15, share 0.8); lon cells 0..2.5 (share 0.6)
+    # and 2.5..5 (share 0.2), so weights 0.75 / 0.25.
+    _, _, grid = clerk.load_witness_grid("sahel", "precipitation")
+    assert grid.covered_box == (12.5, 0.0, 15.0, 5.0)
+    assert grid.n_cells == 2
+    cells = {(la, lo): w for la, lo, w in grid.cells}
+    assert set(cells) == {(13.75, 1.25), (13.75, 3.75)}
+    assert cells[(13.75, 1.25)] == pytest.approx(0.75)
+    assert cells[(13.75, 3.75)] == pytest.approx(0.25)
+    assert "0 to 5 E" in clerk.prepare_witness("sahel", "precipitation").provenance.clerk_text()
+
+
+def test_witness_sahel_precipitation_hand_computed_from_netcdf_cells():
+    import netCDF4
+
+    with netCDF4.Dataset(clerk.REPO_ROOT / "data/raw/witness/gpcp_v23/sahel.nc") as nc:
+        nc.set_auto_maskandscale(False)
+        times = netCDF4.num2date(nc["time"][:], nc["time"].units)
+        k = next(i for i, t in enumerate(times) if (t.year, t.month) == (1981, 7))
+        lats, lons = list(np.asarray(nc["lat"][:], float)), list(np.asarray(nc["lon"][:], float))
+        assert lons == [1.25, 3.75]
+        row = np.asarray(nc["precip"][k, lats.index(13.75), :], float)
+    expected = 0.75 * row[0] + 0.25 * row[1]
+    assert expected == pytest.approx(0.75 * 4.3562 + 0.25 * 5.0737, abs=1e-4)
+    assert clerk.load_witness("sahel", "precipitation").loc["1981-07-01"] == pytest.approx(expected, rel=1e-6)
+
+
+def test_check_native_grid_rejects_off_grid_centers():
+    clerk._check_native_grid(np.array([358.75, 1.25, 3.75]), 1.25, 2.5, axis="lon", path="x")
+    clerk._check_native_grid(np.array([-116.25, -115.75]), 0.25, 0.5, axis="lon", path="x")
+    with pytest.raises(ValueError, match="off the native grid"):
+        clerk._check_native_grid(np.array([359.75, 362.25, 364.75]), 1.25, 2.5, axis="lon", path="x")
+    with pytest.raises(ValueError, match="actual_range"):
+        clerk._check_native_grid(np.array([1.25]), 1.25, 2.5, axis="lon", path="x",
+                                 actual_range=np.array([0.0, 357.5]))
+    with pytest.raises(ValueError, match="spacing"):
+        clerk._check_native_grid(np.array([1.25, 6.25]), 1.25, 2.5, axis="lon", path="x")
+
+
+def test_load_witness_grid_raises_on_mislabelled_lon_axis(tmp_path, monkeypatch):
+    import xarray as xr
+
+    # The first Sahel pull's mislabelling: right spacing, axis shifted by 1 deg.
+    src = clerk.REPO_ROOT / "data/raw/witness/gpcp_v23/sahel.nc"
+    bad = tmp_path / "sahel.nc"
+    with xr.open_dataset(src, mask_and_scale=False) as ds:
+        shifted = ds.assign_coords(lon=ds["lon"] + 1.0)
+        shifted["lon"].attrs = dict(ds["lon"].attrs)
+        shifted.attrs = {}  # global attrs like _NCProperties cannot be rewritten
+        shifted.load().to_netcdf(bad)
+    manifest = clerk.load_witness_manifest()
+    for f in manifest["files"]:
+        if (f["dataset"], f["region"]) == ("gpcp_v23", "sahel"):
+            f["path"] = str(bad)
+    monkeypatch.setattr(clerk, "load_witness_manifest", lambda *a, **k: manifest)
+    with pytest.raises(ValueError, match="off the native grid"):
+        clerk.load_witness_grid("sahel", "precipitation")
 
 
 def test_mask_invalid_handles_fill_missing_and_valid_range():

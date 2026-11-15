@@ -495,7 +495,8 @@ class WitnessSpec:
 
     dataset: str  # key in the PSL manifest and folder under WITNESS_DIR
     netcdf_var: str
-    grid_step: float  # degrees; used only when a file has one cell along an axis
+    grid_step: float  # degrees, lat and lon
+    grid_origin: float  # native cell centers are grid_origin + k * grid_step (lat and lon)
     kelvin: bool  # convert K to degC
     units: str  # units of the returned series
     independence: str
@@ -507,6 +508,7 @@ WITNESS_B: dict[str, WitnessSpec] = {
         dataset="ghcncams",
         netcdf_var="air",
         grid_step=0.5,
+        grid_origin=0.25,  # centers at 0.25 + 0.5k (lat/lon actual_range 89.75, 0.25..359.75)
         kelvin=True,
         units="degC",
         independence=INDEPENDENT,
@@ -516,6 +518,7 @@ WITNESS_B: dict[str, WitnessSpec] = {
         dataset="gpcp_v23",
         netcdf_var="precip",
         grid_step=2.5,
+        grid_origin=1.25,  # centers at 1.25 + 2.5k (lat/lon actual_range 88.75, 1.25..358.75)
         kelvin=False,
         units="mm/day",
         independence=PARTLY_INDEPENDENT,
@@ -557,6 +560,39 @@ def _cell_edges(centers: np.ndarray, default_step: float) -> tuple[np.ndarray, n
     else:
         step = default_step
     return centers - step / 2, centers + step / 2
+
+
+def _check_native_grid(
+    centers: np.ndarray, origin: float, step: float, *, axis: str, path: str, actual_range=None
+) -> None:
+    """Raise unless every cell center is ``origin + k * step`` (and the axis spacing is ``step``).
+
+    NCSS subsets can come back with a relabelled axis: a GPCP request that
+    crossed 0 deg E was labelled from the requested west edge (359.75,
+    362.25, ...) instead of the native centers (358.75, 1.25, ...). Such an
+    axis has the right spacing but the wrong origin, and would silently
+    average the wrong area. ``actual_range`` (the axis attribute, which
+    describes the full dataset) is checked too, so a wrong spec is caught.
+    """
+    centers = np.asarray(centers, dtype=float)
+    checks = [("centers", centers)]
+    if actual_range is not None:
+        checks.append(("actual_range", np.asarray(actual_range, dtype=float)))
+    for what, values in checks:
+        k = (values - origin) / step
+        off = ~np.isclose(k, np.round(k), rtol=0.0, atol=1e-4)
+        if off.any():
+            raise ValueError(
+                f"{path}: {axis} {what} {values[off].tolist()} are off the native grid "
+                f"{origin:g} + k * {step:g}; the file's {axis} axis is mislabelled"
+            )
+    if centers.size > 1:
+        steps = np.diff(centers)
+        if axis == "lon":  # a correctly labelled subset may wrap at 0/360 (358.75, 1.25, ...)
+            steps = (steps + 180.0) % 360.0 - 180.0
+        steps = np.abs(steps)
+        if not np.allclose(steps, step, rtol=1e-4):
+            raise ValueError(f"{path}: {axis} spacing {np.unique(steps.round(6)).tolist()}, expected {step:g}")
 
 
 def _overlap_fraction(lo: np.ndarray, hi: np.ndarray, box_lo: float, box_hi: float) -> np.ndarray:
@@ -642,6 +678,8 @@ def load_witness_grid(region: str, var: str) -> tuple[pd.Series, pd.Series, Witn
         raw = da.to_numpy()
         lats = ds["lat"].to_numpy().astype(float)
         lons = ds["lon"].to_numpy().astype(float)
+        lat_range = ds["lat"].attrs.get("actual_range")
+        lon_range = ds["lon"].attrs.get("actual_range")
         times = pd.DatetimeIndex(ds["time"].to_numpy())
 
     values = _mask_invalid(raw, attrs)
@@ -651,6 +689,10 @@ def load_witness_grid(region: str, var: str) -> tuple[pd.Series, pd.Series, Witn
         if units not in {"k", "degk", "kelvin"}:
             raise ValueError(f"{entry['path']}: expected Kelvin, file says units={attrs.get('units')!r}")
         values = values - KELVIN_OFFSET
+
+    for axis, centers, rng in (("lat", lats, lat_range), ("lon", lons, lon_range)):
+        _check_native_grid(centers, spec.grid_origin, spec.grid_step, axis=axis,
+                           path=entry["path"], actual_range=rng)
 
     lons = np.where(lons > 180, lons - 360, lons)
     lat_lo, lat_hi = _cell_edges(lats, spec.grid_step)
@@ -808,7 +850,7 @@ def prepare_witness(region: str, var: str, witness_a: pd.Series | None = None) -
         dataset_name=manifest["datasets"][spec.dataset],
         source=manifest["source"],
         url=entry["url"],
-        accessed_utc=manifest["accessed_utc"],
+        accessed_utc=entry.get("accessed_utc", manifest["accessed_utc"]),  # per-file re-fetch
         independence=spec.independence,
         independence_note=spec.independence_note,
         region=region,

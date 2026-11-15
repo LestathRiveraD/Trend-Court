@@ -73,8 +73,10 @@
    "dataset": "gpcp_v23",
    "region": "sahel",
    "path": "data/raw/witness/gpcp_v23/sahel.nc",
-   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/gpcp/precip.mon.mean.nc?var=precip&north=15.75&south=11.25&west=-0.25&east=4.25&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
-   "bytes": 28064
+   "url": "https://psl.noaa.gov/thredds/ncss/grid/Datasets/gpcp/precip.mon.mean.nc?var=precip&north=15.75&south=11.25&west=1.25&east=4.25&time_start=1981-01-01&time_end=2025-12-31&accept=netcdf",
+   "bytes": 21568,
+   "accessed_utc": "2026-11-15T23:28:06+00:00",
+   "note": "Re-fetched with west=1.25: the first pull (west=-0.25) crossed 0 deg and NCSS labelled the lon axis 359.75/362.25/364.75 instead of the native 358.75/1.25/3.75. The 1.25 and 3.75 columns are bit-identical to the first pull; the 358.75 column does not overlap the box."
   },
   {
    "dataset": "gpcp_v23",
