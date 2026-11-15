@@ -222,3 +222,143 @@ def test_committed_fpr_json_is_complete():
                 assert s["inflated"] == (s["ci95"][0] > s["alpha"])
     assert len(res["real_cases"]) == 18
     assert all(-1.0 <= row["r1"] <= 1.0 for row in res["real_cases"])
+
+
+# --- experiments (b) coverage and (c) power ---------------------------------
+
+
+def test_trend_replicate_seed_scheme():
+    assert benchmark.trend_replicate_seed(18, 0.6, 0.3, 45, 7) == (18, 600, 300, 45, 7)
+    assert benchmark.trend_replicate_seed(18, 0.6, 0.1, 45, 7) != benchmark.trend_replicate_seed(18, 0.6, 0.3, 45, 7)
+
+
+def test_run_case_reports_hamed_rao_z():
+    y = benchmark.synthetic_series(30, 0.3, 1.0, 10.0, 0.5, seed=8)
+    r = benchmark.run_case(y)
+    assert r["hr_z"] == examiner.mk_hamed_rao(clerk.deseasonalize(y)).z
+
+
+def test_proportion_summary_exact_interval():
+    from scipy.stats import beta
+
+    s = benchmark.proportion_summary(940, 1000)
+    assert (s["n"], s["k"], s["rate"]) == (1000, 940, 0.94)
+    assert s["ci95"][0] == pytest.approx(beta.ppf(0.025, 940, 61))
+    assert s["ci95"][1] == pytest.approx(beta.ppf(0.975, 941, 60))
+    assert benchmark.proportion_summary(0, 0)["rate"] is None
+
+
+def test_coverage_cell_matches_run_case_by_hand():
+    """Coverage counts exactly the replicates whose run_case interval holds slope / 10."""
+    phi, slope, n, seed, reps = 0.6, 0.3, 20, 5, 8
+    res = benchmark.coverage_experiment(reps, phis=(phi,), slopes=(slope,), years=(n,), seed=seed, chunk=3)
+    cell = res["cells"][0]
+    covered, est = 0, []
+    for rep in range(reps):
+        y = benchmark.synthetic_series(n, phi, benchmark.TREND_SIGMA, benchmark.TREND_SEASONAL_AMP, slope,
+                                       seed=benchmark.trend_replicate_seed(seed, phi, slope, n, rep))
+        r = benchmark.run_case(y)
+        covered += r["ts_low"] <= slope / 10 <= r["ts_high"]
+        est.append(r["ts_slope_per_decade"])
+    assert cell["coverage"]["k"] == covered and cell["coverage"]["n"] == reps
+    assert cell["miss_low"] + cell["miss_high"] == reps - covered
+    assert cell["slope_median_per_decade"] == pytest.approx(np.median(est))
+
+
+def test_coverage_experiment_reproducible_worker_independent_and_flags():
+    kw = dict(phis=(0.0, 0.9), slopes=(0.5,), years=(20,), seed=4, chunk=4)
+    a = benchmark.coverage_experiment(12, workers=1, **kw)
+    b = benchmark.coverage_experiment(12, workers=2, **kw)
+    assert a == b
+    json.dumps(a, allow_nan=False)
+    assert a["grid"] == {"phi": [0.0, 0.9], "slope_per_decade": [0.5], "n_years": [20]}
+    assert a["seeds"]["master"] == 4
+    for c in a["cells"]:
+        assert c["below_flag"] == (c["coverage"]["rate"] < benchmark.COVERAGE_FLAG)
+        assert c["below_nominal"] == (c["coverage"]["ci95"][1] < 0.95)
+    flagged = [c["phi"] for c in a["cells"] if c["below_flag"]]
+    assert a["onset"] == [{"slope_per_decade": 0.5, "n_years": 20, "phi": min(flagged) if flagged else None}]
+    assert {(f["phi"], f["n_years"]) for f in a["flagged_cells"]} == \
+        {(c["phi"], c["n_years"]) for c in a["cells"] if c["below_flag"]}
+
+
+def test_coverage_onset_is_first_flagged_phi():
+    """With flag_below = 1.01 every cell is flagged, so the onset is the lowest phi;
+    with flag_below = 0 none is, so there is no onset."""
+    kw = dict(phis=(0.9, 0.3), slopes=(0.3,), years=(20,), seed=1, chunk=5)
+    assert benchmark.coverage_experiment(5, flag_below=1.01, **kw)["onset"][0]["phi"] == 0.3
+    res = benchmark.coverage_experiment(5, flag_below=0.0, **kw)
+    assert res["onset"][0]["phi"] is None and res["onset_phi"] is None and res["flagged_cells"] == []
+
+
+def test_power_cell_matches_run_case_by_hand():
+    phi, slope, n, seed, reps = 0.3, 0.5, 25, 6, 8
+    res = benchmark.power_experiment(reps, phis=(phi,), slopes=(slope,), years=(n,), seed=seed, chunk=3)
+    cell = res["cells"][0]
+    p, z = [], []
+    for rep in range(reps):
+        y = benchmark.synthetic_series(n, phi, benchmark.TREND_SIGMA, benchmark.TREND_SEASONAL_AMP, slope,
+                                       seed=benchmark.trend_replicate_seed(seed, phi, slope, n, rep))
+        r = benchmark.run_case(y)
+        p.append(r["hr_p"])
+        z.append(r["hr_z"])
+    p, z = np.array(p), np.array(z)
+    for a in benchmark.ALPHAS:
+        rates = cell["rates"][f"{a:g}"]
+        assert rates["rejection"]["k"] == int((p < a).sum())
+        assert rates["detection"]["k"] == int(((p < a) & (z > 0)).sum())
+        assert rates["rejection"] == benchmark.proportion_summary(int((p < a).sum()), reps)
+
+
+def test_power_experiment_reproducible_and_worker_independent():
+    kw = dict(phis=(0.0,), slopes=(0.1, 0.5), years=(20, 45), seed=2, chunk=4)
+    a = benchmark.power_experiment(10, workers=1, **kw)
+    b = benchmark.power_experiment(10, workers=2, **kw)
+    assert a == b
+    json.dumps(a, allow_nan=False)
+    assert len(a["cells"]) == 4
+    for c in a["cells"]:
+        for alpha in ("0.05", "0.01"):
+            r = c["rates"][alpha]
+            assert r["detection"]["k"] <= r["rejection"]["k"]
+            assert r["rejection"]["n"] + c["n_failed"] == 10
+
+
+@pytest.mark.parametrize("fn", [benchmark.coverage_experiment, benchmark.power_experiment])
+def test_trend_experiments_reject_bad_arguments(fn):
+    with pytest.raises(ValueError):
+        fn(0)
+    with pytest.raises(ValueError):
+        fn(5, slopes=(0.0,))
+    with pytest.raises(ValueError):
+        fn(5, slopes=(float("nan"),))
+
+
+def test_committed_coverage_json_is_complete():
+    res = json.loads((clerk.REPO_ROOT / "docs" / "benchmark" / "coverage.json").read_text(encoding="utf-8"))
+    assert res["grid"] == {"phi": list(benchmark.TREND_PHIS),
+                           "slope_per_decade": list(benchmark.COVERAGE_SLOPES),
+                           "n_years": list(benchmark.COVERAGE_YEARS)}
+    assert res["replicates"] >= 1000 and res["seeds"]["master"] == benchmark.COVERAGE_SEED
+    assert len(res["cells"]) == len(benchmark.TREND_PHIS) * len(benchmark.COVERAGE_SLOPES) * len(benchmark.COVERAGE_YEARS)
+    for c in res["cells"]:
+        cov = c["coverage"]
+        assert cov["n"] + c["n_failed"] == res["replicates"]
+        assert c["below_flag"] == (cov["rate"] < res["flag_below"])
+        assert c["miss_low"] + c["miss_high"] == cov["n"] - cov["k"]
+    assert len(res["onset"]) == len(benchmark.COVERAGE_SLOPES) * len(benchmark.COVERAGE_YEARS)
+
+
+def test_committed_power_json_is_complete():
+    res = json.loads((clerk.REPO_ROOT / "docs" / "benchmark" / "power.json").read_text(encoding="utf-8"))
+    assert res["grid"] == {"phi": list(benchmark.TREND_PHIS),
+                           "slope_per_decade": list(benchmark.POWER_SLOPES),
+                           "n_years": list(range(20, 46, 5))}
+    assert res["replicates"] >= 1000 and res["seeds"]["master"] == benchmark.POWER_SEED
+    assert res["alphas"] == [0.05, 0.01]
+    assert len(res["cells"]) == len(benchmark.TREND_PHIS) * len(benchmark.POWER_SLOPES) * len(benchmark.POWER_YEARS)
+    for c in res["cells"]:
+        for alpha in ("0.05", "0.01"):
+            r = c["rates"][alpha]
+            assert r["rejection"]["n"] + c["n_failed"] == res["replicates"]
+            assert r["detection"]["k"] <= r["rejection"]["k"]
