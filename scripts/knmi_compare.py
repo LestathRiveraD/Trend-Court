@@ -8,9 +8,11 @@ Exit codes (``knmi.gate_status``, plus 3 for a malformed file):
   1  at least one filled-in entry is outside the tolerance
   2  nothing is out of tolerance, but some entries still await KNMI or are
      inconclusive (KNMI's display too coarse to decide; re-read with more digits)
-  3  knmi_slopes.json has a malformed entry (message printed to stderr)
+  3  knmi_slopes.json is unreadable, not valid JSON, or has a malformed entry
+     (message printed to stderr)
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -19,10 +21,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from trendcourt import knmi  # noqa: E402
 
 if __name__ == "__main__":
-    slopes = knmi.load_knmi_slopes(Path(sys.argv[1]) if len(sys.argv) > 1 else knmi.SLOPES_FILE)
+    path = Path(sys.argv[1]) if len(sys.argv) > 1 else knmi.SLOPES_FILE
     try:
+        slopes = knmi.load_knmi_slopes(path)
         rows = knmi.compare_all(slopes)
-    except ValueError as exc:
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"Gate 1 (c): INVALID knmi_slopes.json: {exc}", file=sys.stderr)
         sys.exit(knmi.GATE_INVALID)
     pending = knmi.pending_entries(slopes)

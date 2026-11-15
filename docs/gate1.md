@@ -143,9 +143,14 @@ if the live site differs.
    - **2**: nothing is out of tolerance, but some or all entries are still
      pending or inconclusive (display too coarse; see the 2% cap above).
      Partial results never exit 0.
-   - **3**: `knmi_slopes.json` has a malformed entry (missing field, bad
-     units or resolution, missing evidence file). The message says which;
-     fix the entry and run it again.
+   - **3**: `knmi_slopes.json` cannot be used: the file is missing or is
+     not valid JSON (for example a trailing comma), a case or series name
+     is unknown, an entry lacks `slope` or `units`, a field has the wrong
+     type (numbers for `slope`/`resolution`/`stderr`, strings for
+     `knmi_settings`/`url`/`accessed_utc`/`evidence`), a filled-in entry
+     lacks `resolution`/`knmi_settings`/`evidence`, units or resolution are
+     invalid, or the evidence file does not exist. The message says which;
+     fix the file and run it again.
 
 ### Our slopes (awaiting KNMI)
 

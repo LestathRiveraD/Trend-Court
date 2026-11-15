@@ -191,6 +191,79 @@ def test_compare_script_exits_3_on_a_malformed_entry(tmp_path):
     assert "INVALID" in proc.stderr and "resolution" in proc.stderr
 
 
+def _run_compare_script(tmp_path, text):
+    path = tmp_path / "slopes.json"
+    path.write_text(text, encoding="utf-8")
+    script = Path(__file__).resolve().parents[1] / "scripts" / "knmi_compare.py"
+    return subprocess.run([sys.executable, str(script), str(path)], capture_output=True, text=True)
+
+
+def _committed_with(edit):
+    slopes = knmi.load_knmi_slopes()
+    edit(slopes)
+    return json.dumps(slopes)
+
+
+def _rename_series(s):
+    s["cases"]["iberia"]["daily"] = s["cases"]["iberia"].pop("annual")
+    s["cases"]["iberia"]["daily"]["slope"] = 0.034
+
+
+def _rename_case(s):
+    s["cases"]["Iberia"] = s["cases"].pop("iberia")
+
+
+def _drop_units(s):
+    del s["cases"]["iberia"]["annual"]["units"]
+
+
+def _numeric_evidence(s):
+    s["cases"]["iberia"]["annual"].update(slope=0.034, resolution=0.001, knmi_settings="together", evidence=5)
+
+
+@pytest.mark.parametrize(
+    "make_text, message",
+    [
+        (lambda: knmi.SLOPES_FILE.read_text(encoding="utf-8").replace('"tolerance": 0.01,', '"tolerance": 0.01,,'), "Expecting"),
+        (lambda: _committed_with(_rename_series), "unknown series 'daily'"),
+        (lambda: _committed_with(_rename_case), "unknown case 'Iberia'"),
+        (lambda: _committed_with(_drop_units), "missing 'units'"),
+        (lambda: _committed_with(_numeric_evidence), "evidence must be a string"),
+    ],
+    ids=["json-syntax", "series-key", "case-key", "no-units", "evidence-type"],
+)
+def test_compare_script_exits_3_on_a_malformed_file(tmp_path, make_text, message):
+    proc = _run_compare_script(tmp_path, make_text())
+    assert proc.returncode == knmi.GATE_INVALID
+    assert "INVALID" in proc.stderr and message in proc.stderr
+
+
+def test_compare_script_exits_3_on_a_missing_file(tmp_path):
+    script = Path(__file__).resolve().parents[1] / "scripts" / "knmi_compare.py"
+    proc = subprocess.run([sys.executable, str(script), str(tmp_path / "nope.json")], capture_output=True, text=True)
+    assert proc.returncode == knmi.GATE_INVALID
+
+
+@pytest.mark.parametrize(
+    "entry, message",
+    [
+        ({"slope": "0.034", "units": "per_year"}, "slope must be a number"),
+        ({"slope": True, "units": "per_year"}, "slope must be a number"),
+        ({"slope": None, "units": "per_year", "resolution": [0.001]}, "resolution must be a number"),
+        ({"slope": None, "units": "per_month"}, "units must be one of"),
+        ({"units": "per_year"}, "missing 'slope'"),
+        ({"slope": None, "units": "per_year", "knmi_settings": {"start": "together"}}, "knmi_settings must be a string"),
+    ],
+)
+def test_validate_slopes_rejects_bad_entries(entry, message):
+    with pytest.raises(ValueError, match=message):
+        knmi.validate_slopes({"cases": {"iberia": {"annual": entry}}})
+
+
+def test_validate_slopes_accepts_committed_file():
+    knmi.validate_slopes(knmi.load_knmi_slopes())
+
+
 # --- gate status / exit code ----------------------------------------------
 
 

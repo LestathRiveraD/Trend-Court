@@ -215,6 +215,50 @@ def load_knmi_slopes(path: Path = SLOPES_FILE) -> dict:
         return json.load(fh)
 
 
+_NUMBER_FIELDS = ("slope", "resolution", "stderr")
+_STRING_FIELDS = ("knmi_settings", "url", "accessed_utc", "evidence")
+
+
+def _is_number(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+
+
+def validate_slopes(slopes) -> None:
+    """Raise ``ValueError`` unless ``slopes`` has the shape of knmi_slopes.json.
+
+    Cases and series must be known names (``CASES`` x ``SERIES``); every entry
+    needs ``slope`` and ``units`` keys; ``slope``/``resolution``/``stderr``
+    are finite numbers or null; ``knmi_settings``/``url``/``accessed_utc``/
+    ``evidence`` are strings or null.
+    """
+    if not isinstance(slopes, dict) or not isinstance(slopes.get("cases"), dict):
+        raise ValueError("expected a JSON object with a 'cases' object")
+    if "tolerance" in slopes and not _is_number(slopes["tolerance"]):
+        raise ValueError(f"tolerance must be a number, got {slopes['tolerance']!r}")
+    for region, by_series in slopes["cases"].items():
+        if region not in CASES:
+            raise ValueError(f"unknown case {region!r}; expected one of {CASES}")
+        if not isinstance(by_series, dict):
+            raise ValueError(f"{region}: expected an object keyed by series")
+        for series, entry in by_series.items():
+            where = f"{region} {series}"
+            if series not in SERIES:
+                raise ValueError(f"{region}: unknown series {series!r}; expected one of {SERIES}")
+            if not isinstance(entry, dict):
+                raise ValueError(f"{where}: expected an object")
+            for key in ("slope", "units"):
+                if key not in entry:
+                    raise ValueError(f"{where}: missing {key!r}")
+            if entry["units"] not in UNIT_FACTORS:
+                raise ValueError(f"{where}: units must be one of {sorted(UNIT_FACTORS)}, got {entry['units']!r}")
+            for key in _NUMBER_FIELDS:
+                if entry.get(key) is not None and not _is_number(entry[key]):
+                    raise ValueError(f"{where}: {key} must be a number or null, got {entry[key]!r}")
+            for key in _STRING_FIELDS:
+                if entry.get(key) is not None and not isinstance(entry[key], str):
+                    raise ValueError(f"{where}: {key} must be a string or null, got {entry[key]!r}")
+
+
 def _check_evidence(region: str, series: str, evidence: str, root: Path) -> None:
     path = (root / evidence).resolve()
     if not path.is_relative_to((root / EVIDENCE_SUBDIR).resolve()) or not path.is_file():
@@ -227,8 +271,9 @@ def compare_all(slopes: dict, root: Path = clerk.REPO_ROOT) -> list[Comparison]:
     A filled-in entry must also record ``resolution``, ``knmi_settings`` and
     ``evidence`` (a repo-relative path to an existing file under
     ``docs/gate1/``), so a pass is always backed by what KNMI showed.
-    Malformed entries raise ``ValueError``.
+    Malformed entries raise ``ValueError`` (see ``validate_slopes``).
     """
+    validate_slopes(slopes)
     out = []
     for region, by_series in slopes["cases"].items():
         filled = {k: v for k, v in by_series.items() if v.get("slope") is not None}
