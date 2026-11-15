@@ -257,6 +257,83 @@ def test_malformed_phase3_inputs_raise(bad):
         verdict.decide(c, TH)
 
 
+# --- the reason sentence (review round 1) ----------------------------------------
+
+
+def test_moderate_reason_names_p_when_p_is_not_below_alpha_strong():
+    # Sahel temperature: p = 0.016 in a Strong band, no failed check.
+    v = verdict.decide(make_case(p=0.016, r1=0.3), TH)
+    assert v["label"] == "moderate" and not v["capped"]
+    assert v["reason"] == (f"The trend is significant (p = 0.016 < {A_MOD:g}), "
+                           f"but p is not below {A_STRONG:g} as Strong requires.")
+
+
+def test_moderate_reason_names_the_band_cap():
+    # Amazon temperature: band capped at Moderate, every check pass or pending.
+    v = verdict.decide(make_case(p=0.005, r1=0.7), TH)
+    assert v["label"] == "moderate" and not v["capped"]
+    assert "fail" not in [c["status"] for c in v["checks"]]
+    assert v["reason"] == (f"The trend is significant (p = 0.005 < {A_STRONG:g}), "
+                           "but this record is too autocorrelated for more than Moderate.")
+
+
+def test_moderate_reason_names_the_failed_check():
+    v = verdict.decide(make_case(agree=False), TH)
+    assert v["reason"] == (f"The trend is significant (p = 0.001 < {A_STRONG:g}), "
+                           "but the seasonal-test consistency check failed.")
+    v = verdict.decide(make_case(windows=0.5, witness=AGREEING_WITNESS), TH)
+    assert v["reason"].endswith("but the window agreement check failed.")
+    v = verdict.decide(make_case(agree=False, windows=0.5, witness=AGREEING_WITNESS), TH)
+    assert v["reason"].endswith("but the seasonal-test consistency and window agreement "
+                                "checks failed.")
+
+
+def test_moderate_reason_lists_every_blocker():
+    # Sahel precipitation: p not below alpha_strong and consistency failed.
+    v = verdict.decide(make_case(p=0.0155, agree=False), TH)
+    assert v["reason"].endswith(f"but p is not below {A_STRONG:g} as Strong requires "
+                                "and the seasonal-test consistency check failed.")
+    v = verdict.decide(make_case(p=0.005, r1=0.7, windows=0.5), TH)
+    assert v["reason"].endswith("but this record is too autocorrelated for more than Moderate "
+                                "and the window agreement check failed.")
+
+
+def test_inconclusive_reason_names_the_wide_interval():
+    v = verdict.decide(make_case(p=0.3, slope=0.05, low=-0.2, high=0.3), TH)
+    assert v["label"] == "inconclusive"
+    assert v["reason"] == ("The test cannot tell this trend from noise (p = 0.3), and the "
+                           "slope's interval, widened for autocorrelation, reaches past "
+                           f"±{TEMP_MARGIN:.3g} per decade, so a trend that size is not ruled out.")
+    assert "zero change" not in v["reason"]
+
+
+def test_inconclusive_reason_names_interval_optimistic():
+    v = verdict.decide(make_case(p=0.6, slope=0.0, low=-0.01, high=0.01, region="yucatan"), TH)
+    assert v["label"] == "inconclusive"
+    assert v["reason"].endswith("and this record's noise makes its interval too optimistic "
+                                "to rule out a trend.")
+
+
+def test_inconclusive_reason_above_the_grid():
+    v = verdict.decide(make_case(p=0.6, slope=0.0, low=-0.01, high=0.01, r1=0.95), TH)
+    assert v["label"] == "inconclusive"
+    assert v["reason"].endswith("and the record is more autocorrelated than the benchmark covers.")
+
+
+@pytest.mark.parametrize("p", [0.0, 1e-9, 9.99e-7])
+def test_tiny_p_is_printed_as_below_the_floor(p):
+    v = verdict.decide(make_case(p=p), TH)
+    assert v["reason"].startswith("The trend is significant (p < 1e-6), ")
+    assert "p = 0" not in v["reason"]
+    assert checks(v)["hamed_rao_p"]["value"] == p  # the raw value is kept
+
+
+def test_p_at_the_floor_is_printed():
+    assert verdict._p_text(verdict.P_FLOOR, A_STRONG) == f"p = 1e-06 < {A_STRONG:g}"
+    assert verdict._p_text(0.0, A_STRONG) == "p < 1e-6"
+    assert verdict._p_text(0.0123) == "p = 0.0123"
+
+
 # --- the case JSON ----------------------------------------------------------------
 
 

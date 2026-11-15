@@ -56,6 +56,21 @@ CHECK_NAMES = ("hamed_rao_p", "mk_seasonal_consistency", "window_agreement", "wi
 
 PASS, FAIL, PENDING = "pass", "fail", "pending"
 
+P_FLOOR = 1e-6
+"""Below this a reason prints ``p < 1e-6``, not the value: ``pymannkendall``
+underflows to exactly 0 on strong trends, and "p = 0" would be false."""
+
+_CHECK_TEXT = {"mk_seasonal_consistency": "seasonal-test consistency",
+               "window_agreement": "window agreement"}
+
+
+def _p_text(p: float, threshold: float | None = None) -> str:
+    """``p`` for a reason: ``"p = 0.016 < 0.05"``, or ``"p < 1e-6"`` below
+    :data:`P_FLOOR` (0 included)."""
+    if p < P_FLOOR:
+        return f"p < {P_FLOOR:.0e}".replace("e-0", "e-")
+    return f"p = {p:.3g}" + ("" if threshold is None else f" < {threshold:g}")
+
 
 def _check(name: str, status: str, value=None, threshold=None) -> dict:
     return {"name": name, "status": status, "value": value, "threshold": threshold}
@@ -174,11 +189,11 @@ def decide(case: dict, thresholds: dict) -> dict:
                       ("mk_seasonal_consistency", "window_agreement", "witness_agreement")]
         if by_name["witness_agreement"]["status"] == FAIL:
             label = "inconclusive"
-            reason = (f"The trend is significant (p = {p:.3g}), but the second dataset "
+            reason = (f"The trend is significant ({_p_text(p)}), but the second dataset "
                       "does not show the same direction.")
         elif claim == "strong" and all(s == PASS for s in robustness):
             label = "strong_evidence"
-            reason = (f"The trend is significant (p = {p:.3g} < {th['alpha_strong']:g}) "
+            reason = (f"The trend is significant ({_p_text(p, th['alpha_strong'])}) "
                       "and holds across time windows and a second dataset.")
         else:
             label = "moderate"
@@ -186,27 +201,46 @@ def decide(case: dict, thresholds: dict) -> dict:
             if capped:
                 missing = [n.replace("_", " ") for n in ("window_agreement", "witness_agreement")
                            if by_name[n]["status"] == PENDING]
-                reason = (f"The trend is significant (p = {p:.3g} < {th['alpha_strong']:g}), "
+                reason = (f"The trend is significant ({_p_text(p, th['alpha_strong'])}), "
                           f"but it stays Moderate until the {' and '.join(missing)} "
                           f"check{'s are' if len(missing) > 1 else ' is'} done.")
             else:
-                reason = (f"The trend is significant (p = {p:.3g} < {p_threshold:g}), "
-                          "but not every check for Strong evidence passed.")
+                # Name what actually stopped Strong: the band's cap or p, and any failed check.
+                blockers = []
+                if band["max_verdict"] != "strong":
+                    blockers.append("this record is too autocorrelated for more than Moderate")
+                elif claim != "strong":
+                    blockers.append(f"p is not below {th['alpha_strong']:g} as Strong requires")
+                failed = [_CHECK_TEXT[n] for n in ("mk_seasonal_consistency", "window_agreement")
+                          if by_name[n]["status"] == FAIL]
+                if failed:
+                    blockers.append(f"the {' and '.join(failed)} "
+                                    f"check{'s' if len(failed) > 1 else ''} failed")
+                reason = (f"The trend is significant ({_p_text(p, p_threshold)}), "
+                          f"but {' and '.join(blockers)}.")
     else:
         ts_low, ts_high = float(ts["low_slope_per_decade"]), float(ts["high_slope_per_decade"])
         if thresholds_module.no_trend_allowed(variable, slope, ts_low, ts_high, r1, p, th,
                                               region=region, regional_mean=regional_mean):
             label = "no_detectable_trend"
-            reason = (f"The test finds no trend (p = {p:.3g}) and the slope's interval stays "
+            reason = (f"The test finds no trend ({_p_text(p)}) and the slope's interval stays "
                       f"within ±{margin:.3g} per decade of zero.")
         elif p < th["alpha_moderate"]:
             label = "inconclusive"
-            reason = (f"The p-value ({p:.3g}) is small, but this record is too autocorrelated "
+            reason = (f"The p-value is small ({_p_text(p)}), but this record is too autocorrelated "
                       "for that p-value to count as evidence.")
         else:
             label = "inconclusive"
-            reason = (f"The test cannot tell this trend from noise (p = {p:.3g}), "
-                      "and zero change is not ruled out either.")
+            # Name what stopped "No detectable trend", in no_trend_allowed's terms.
+            if band is None:
+                blocker = "the record is more autocorrelated than the benchmark covers"
+            elif "interval_optimistic" in caveats:
+                blocker = ("this record's noise makes its interval too optimistic "
+                           "to rule out a trend")
+            else:
+                blocker = (f"the slope's interval, widened for autocorrelation, reaches past "
+                           f"±{margin:.3g} per decade, so a trend that size is not ruled out")
+            reason = f"The test cannot tell this trend from noise ({_p_text(p)}), and {blocker}."
 
     return {
         "label": label,

@@ -2871,6 +2871,6 @@
     ],
     "label": "moderate",
     "no_trend_margin": 0.1,
-    "reason": "The trend is significant (p = 3.26e-09 < 0.01), but it stays Moderate until the window agreement and witness agreement checks are done."
+    "reason": "The trend is significant (p < 1e-6), but it stays Moderate until the window agreement and witness agreement checks are done."
   }
 }
