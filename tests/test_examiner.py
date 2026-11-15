@@ -1,3 +1,4 @@
+import dataclasses
 import json
 
 import numpy as np
@@ -559,23 +560,57 @@ def test_reversing_trend_has_low_window_agreement():
     assert w["same_sign_share"] < 0.7
 
 
+def _cells(w):
+    return {(s, e): (w["slope"][i][j], w["p"][i][j])
+            for i, s in enumerate(w["start_years"]) for j, e in enumerate(w["end_years"])
+            if w["slope"][i][j] is not None}
+
+
 def test_windows_failing_the_quality_gate_are_null_and_excluded():
-    t, y = trend_series(years=30)
+    t, y = trend_series(years=30)  # 1981 to 2010
     y = y.copy()
-    y["1981-01":"1984-12"] = np.nan  # windows starting before 1985 have > 10% missing or < 15 years
+    y["1981-01":"1984-12"] = np.nan
     w = examiner.windows(t, y)
-    for i, s in enumerate(w["start_years"]):
-        for j, e in enumerate(w["end_years"]):
-            if e - s + 1 < 15:
-                continue
-            keep = (y.index.year >= s) & (y.index.year <= e)
-            passed = clerk.quality_gate(y[keep], min_years=15).passed
-            assert (w["slope"][i][j] is not None) == passed
-    assert 0 < w["n_tested"] < w["n_windows"]
-    tested = [(i, j) for i, row in enumerate(w["slope"]) for j, v in enumerate(row) if v is not None]
+    cells = _cells(w)
+    # No window starting in the gap is tested: not 1981-2010 (13% missing over
+    # its span), and not 1984-2010 either (3.7%), whose data would start in 1985.
+    assert all(s >= 1985 for s, _ in cells)
+    assert len(cells) == w["n_tested"] == sum(1 for s in range(1985, 1997)
+                                              for e in range(s + 14, 2011))
+    # No two labels are tested on the same data.
+    assert len(set(cells.values())) == len(cells)
     full_sign = np.sign(w["full_slope_per_decade"])
-    expected = sum(np.sign(w["slope"][i][j]) == full_sign for i, j in tested) / len(tested)
+    expected = sum(np.sign(b) == full_sign for b, _ in cells.values()) / len(cells)
     assert w["same_sign_share"] == expected
+
+
+def test_windows_count_missing_months_over_the_whole_span():
+    t, y = trend_series(years=30)  # 1981 to 2010
+    y = y.copy()
+    y["1990-01":"1991-12"] = np.nan  # 24 months
+    cells = _cells(examiner.windows(t, y))
+    assert (1981, 2000) in cells       # 24 of 240 months: 10%, at the limit
+    assert (1981, 1999) not in cells   # 24 of 228: over 10%
+    assert (1985, 1999) not in cells   # 24 of 180
+    assert (1992, 2006) in cells       # no gap
+    assert (1991, 2005) not in cells   # 12 of 180, but its first year is all missing
+    assert (1990, 2010) not in cells   # 24 of 252 months, but its first year is all missing
+
+
+def test_windows_with_a_non_finite_result_are_null_and_excluded(monkeypatch):
+    t, y = trend_series(years=16)  # 1981 to 1996: three windows
+    real = examiner.theil_sen
+
+    def fake(t, y):
+        r = real(t, y)
+        return dataclasses.replace(r, slope_per_decade=float("nan")) if len(y) == 15 * 12 \
+            and t[0] < 1982 else r
+
+    monkeypatch.setattr(examiner, "theil_sen", fake)
+    w = examiner.windows(t, y, workers=1)
+    assert set(_cells(w)) == {(1981, 1996), (1982, 1996)}
+    assert w["n_windows"] == 3 and w["n_tested"] == 2
+    json.dumps(w, allow_nan=False)
 
 
 def test_windows_without_a_testable_window_have_no_share():
@@ -606,6 +641,8 @@ def test_windows_is_strict_json_and_does_not_touch_input():
 @pytest.mark.parametrize("kwargs, exc", [
     ({"min_years": 0}, ValueError), ({"min_years": True}, ValueError),
     ({"alpha": 1.5}, ValueError),
+    ({"workers": 0}, ValueError), ({"workers": -2}, ValueError),
+    ({"workers": True}, ValueError), ({"workers": 2.0}, ValueError),
 ])
 def test_windows_rejects_bad_arguments(kwargs, exc):
     t, y = trend_series(years=16)
@@ -619,3 +656,11 @@ def test_windows_needs_a_monthly_series():
         examiner.windows(t, y.to_numpy())
     with pytest.raises(ValueError):
         examiner.windows(t[:-1], y)
+
+
+def test_windows_default_workers_follow_the_cpu_affinity(monkeypatch):
+    monkeypatch.setattr(examiner.os, "sched_getaffinity", lambda pid: {3}, raising=False)
+    monkeypatch.setattr(examiner.os, "cpu_count", lambda: 64)
+    assert examiner._cpu_count() == 1
+    monkeypatch.delattr(examiner.os, "sched_getaffinity")
+    assert examiner._cpu_count() == 64
