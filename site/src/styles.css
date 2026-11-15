@@ -75,16 +75,37 @@ button:focus-visible { outline: 3px solid var(--bubble); outline-offset: 3px; }
 .notice { justify-self: start; background: var(--sky); border: var(--stroke); border-radius: 14px; padding: 8px 14px; font-size: 15px; }
 
 .slot { display: grid; gap: 12px; }
-.cases { display: flex; flex-wrap: wrap; gap: 12px; }
-.case-btn {
-  display: grid; gap: 2px; text-align: left; font: inherit; color: inherit; cursor: pointer;
-  background: var(--surface); border: var(--stroke); border-radius: var(--radius); box-shadow: var(--pop); padding: 10px 16px;
+/* Case picker (#23): native radios styled as cards. The radio dot carries the checked
+   state, so selection never relies on colour alone. */
+.picker { display: grid; gap: 20px; }
+.step { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 10px; }
+.step legend { font-family: var(--display); font-weight: 600; font-size: 19px; padding: 0; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.step-n {
+  display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--sun); border: var(--stroke); font-size: 15px;
+}
+.choices { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+.choice {
+  position: relative; display: flex; gap: 12px; align-items: flex-start; cursor: pointer; min-width: 0;
+  background: var(--surface); border: var(--stroke); border-radius: var(--radius); box-shadow: var(--pop); padding: 12px 14px;
   transition: transform .12s ease, box-shadow .12s ease;
 }
-.case-btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
-.case-btn[aria-pressed="true"] { background: var(--sky); }
-.case-var { font-family: var(--display); font-weight: 600; }
-.case-region { font-size: 14px; color: var(--muted); }
+.choice:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+.choice:has(input:checked) { background: var(--sky); border-width: 3.5px; }
+.choice:has(input:focus-visible) { outline: 3px solid var(--bubble); outline-offset: 3px; }
+.choice.is-disabled { cursor: not-allowed; opacity: .6; box-shadow: none; transform: none; }
+.choice input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--indigo); cursor: inherit; }
+.choice input:focus-visible { outline: none; }
+.choice-body { display: grid; gap: 2px; min-width: 0; }
+.choice-title { font-family: var(--display); font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
+.choice-text { font-size: 14.5px; color: var(--muted); }
+.choice-meta { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.choice-flag {
+  justify-self: start; margin-top: 4px; font-size: 13px; font-weight: 700; padding: 1px 10px; border-radius: 999px;
+  border: 2px dashed var(--ink); background: repeating-linear-gradient(135deg, var(--surface) 0 6px, var(--v-insufficient) 6px 10px);
+}
+.stand { font-family: var(--display); font-weight: 600; font-size: 17px; color: var(--indigo); }
+.error code { font-family: var(--mono); font-size: .9em; }
 
 .court { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 760px) { .court { grid-template-columns: minmax(0, 1fr); } }

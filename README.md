@@ -57,6 +57,9 @@ npm run preview     # serve the build at http://localhost:4173/Trend-Court/
 ```
 
 The build uses `base: "/Trend-Court/"` for GitHub Pages; dev and preview serve under the same path.
+The case picker (`src/Picker.tsx`, logic in `src/picker.ts`) offers only what `index.json` lists and keeps the
+selection in the URL hash, `#/<region>/<variable>` (for example `#/mexicali/temperature`), so a reload or a
+deep link opens the same case.
 `src/data.ts` holds the types of the case JSON and `index.json` and refuses files whose
 `schema_version` differs from `CASE_SCHEMA_VERSION`, which must equal `SCHEMA_VERSION` in
 `trendcourt/case.py`.
