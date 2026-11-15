@@ -99,7 +99,14 @@ describe("checks and cap", () => {
     const rows = checkRows(c.verdict);
     expect(rows.map((r) => r.name)).toEqual(c.verdict.checks.map((k) => k.name));
     expect(rows[0]).toMatchObject({ status: "pass", mark: "✓", value: "p < 1e-6", threshold: "needs p < 0.01" });
-    expect(rows[2]).toMatchObject({
+    expect(rows[2]).toMatchObject({ status: "pass", mark: "✓", value: "97% of windows same sign", threshold: "needs ≥ 80%" });
+    const pendingWindow: Verdict = {
+      ...c.verdict,
+      checks: c.verdict.checks.map((k) =>
+        k.name === "window_agreement" ? { ...k, status: "pending" as const, value: null } : k,
+      ),
+    };
+    expect(checkRows(pendingWindow)[2]).toMatchObject({
       status: "pending",
       statusText: "pending (coming soon)",
       value: "not measured yet",
@@ -127,21 +134,21 @@ describe("checks and cap", () => {
 
   it("says why a verdict is capped", () => {
     expect(c.verdict.capped).toBe(true);
-    expect(cappedText(c.verdict)).toBe("Capped at Moderate until the second dataset and the window check are in.");
-    const oneLeft = {
+    expect(cappedText(c.verdict)).toBe("Capped at Moderate until the second dataset is in.");
+    const twoLeft = {
       ...c.verdict,
       checks: c.verdict.checks.map((k) =>
-        k.name === "window_agreement" ? { ...k, status: "pass" as const, value: 0.9 } : k,
+        k.name === "window_agreement" ? { ...k, status: "pending" as const, value: null } : k,
       ),
     };
-    expect(cappedText(oneLeft)).toBe("Capped at Moderate until the second dataset is in.");
+    expect(cappedText(twoLeft)).toBe("Capped at Moderate until the second dataset and the window check are in.");
     expect(cappedText({ ...c.verdict, capped: false })).toBeNull();
   });
 
   it("signs as the Council and names the checks behind the verdict", () => {
     expect(signature(c)).toEqual({
       by: "— The Council",
-      on: "Ruled on the trend test and the seasonal test. Still pending: the window check and the second dataset.",
+      on: "Ruled on the trend test, the seasonal test and the window check. Still pending: the second dataset.",
     });
   });
 
