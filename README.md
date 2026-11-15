@@ -4,6 +4,7 @@ Puts climate-trend claims on trial against NASA data (POWER, MERRA-2, GLDAS, FLD
 
 - `trendcourt/clerk.py`: data loading, cleaning, aggregation, deseasonalizing
 - `trendcourt/examiner.py`: trend statistics (Theil–Sen, OLS, Mann–Kendall variants)
+- `trendcourt/knmi.py`: Gate 1 (c) KNMI Climate Explorer cross-check (upload files, slope comparison)
 - `data/`: raw downloads and region definitions
 - `docs/`: method notes
 
