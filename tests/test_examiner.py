@@ -389,3 +389,33 @@ def test_mk_rejects_bad_input():
     for lag in (0, -1, 2.5, True, len(y)):
         with pytest.raises(ValueError, match="lag"):
             examiner.mk_hamed_rao(y, lag=lag)
+
+
+def test_hamed_rao_rejects_broken_variance_correction():
+    """The Hamed-Rao n/n* factor can make Var(S) negative; the library then
+    returns NaN z/p with h=False, 'no trend'. The wrapper must raise."""
+    y = np.random.default_rng(400).standard_normal(480)
+    with np.errstate(invalid="ignore"):
+        ref = pmk.hamed_rao_modification_test(y)
+    assert ref.var_s < 0 and np.isnan(ref.p) and not ref.h  # library breakdown reproduced
+    with pytest.raises(ValueError, match="non-positive or undefined"):
+        examiner.mk_hamed_rao(y)
+    res = examiner.mk_hamed_rao(y, lag=3)  # explicit lag avoids it
+    assert res.var_s > 0 and np.isfinite(res.p)
+    with pytest.raises(ValueError, match="non-positive or undefined"):
+        examiner.mk_hamed_rao(np.ones(30))  # constant series: Var(S) is NaN
+
+
+def test_seasonal_rejects_no_month_with_two_values():
+    one_year = pd.Series(np.arange(12.0), index=pd.period_range("2000-01", periods=12, freq="M"))
+    with pytest.raises(ValueError, match="calendar month with 2 or more"):
+        examiner.mk_seasonal(one_year)
+    sparse = pd.Series([np.nan] * 12 + [1.0, 2.0, 3.0],
+                       index=pd.period_range("2000-01", periods=15, freq="M"))
+    with pytest.raises(ValueError, match="calendar month with 2 or more"):
+        examiner.mk_seasonal(sparse)
+    # One month observed in two years is enough for the library to run.
+    ok = pd.Series([1.0] + [np.nan] * 11 + [2.0, 5.0, 6.0],
+                   index=pd.period_range("2000-01", periods=15, freq="M"))
+    res = examiner.mk_seasonal(ok)
+    assert res.n == 4 and np.isfinite(res.Tau)

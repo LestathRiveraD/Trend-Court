@@ -255,6 +255,14 @@ def mk_hamed_rao(y, alpha: float = 0.05, lag: int | None = None) -> MKResult:
     S, Var(S) and the rank autocorrelation are computed on the remaining
     values as if they were consecutive. Gaps do not raise. ±inf raises
     here, as does fewer than 3 non-NaN values.
+
+    The Hamed–Rao correction can break down: the n/n* factor can make
+    the corrected Var(S) negative (seen with the default ``lag=None`` on
+    white noise of length 480), or undefined (NaN) for a constant series.
+    The library then returns NaN z and p but still reports ``h=False``,
+    ``'no trend'``. This raises ``ValueError`` instead, so a broken test
+    is never read as "no trend"; an explicit ``lag`` (e.g. 3) usually
+    avoids it.
     """
     _check_alpha(alpha)
     if lag is not None and (isinstance(lag, bool) or not isinstance(lag, (int, np.integer)) or lag < 1):
@@ -265,7 +273,14 @@ def mk_hamed_rao(y, alpha: float = 0.05, lag: int | None = None) -> MKResult:
         raise ValueError(f"need at least 3 non-NaN values, got {n}")
     if lag is not None and lag >= n:
         raise ValueError(f"lag must be smaller than the number of non-NaN values ({n}), got {lag}")
-    res = pmk.hamed_rao_modification_test(v, alpha=alpha, lag=lag)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        res = pmk.hamed_rao_modification_test(v, alpha=alpha, lag=lag)
+    var_s, z, p = float(res.var_s), float(res.z), float(res.p)
+    if not (np.isfinite(var_s) and var_s > 0 and np.isfinite(z) and np.isfinite(p)):
+        raise ValueError(
+            f"Hamed-Rao corrected variance of S is non-positive or undefined (var_s={var_s}, "
+            f"z={z}, p={p}, lag={lag}); the test result is not usable. Try an explicit lag "
+            "(e.g. lag=3), and check the series is not constant")
     return _mk_result(res, test="hamed_rao", alpha=alpha, n=n,
                       lag=None if lag is None else int(lag), period=None)
 
@@ -295,6 +310,9 @@ def mk_seasonal(y_raw: pd.Series, period: int = 12, alpha: float = 0.05) -> MKRe
     NaN handling in pymannkendall 1.4.3: the reshape happens before
     missing values are dropped, and each calendar month is then tested
     with its own NaN skipped, so interior gaps keep the month alignment.
+    At least one calendar month needs 2 or more non-NaN values (e.g. a
+    single year is not enough); otherwise this raises ``ValueError``
+    rather than letting the library divide by zero.
     """
     _check_alpha(alpha)
     if period != 12:
@@ -314,6 +332,10 @@ def mk_seasonal(y_raw: pd.Series, period: int = 12, alpha: float = 0.05) -> MKRe
     n = int(np.count_nonzero(~np.isnan(v)))
     if n < 3:
         raise ValueError(f"need at least 3 non-NaN values, got {n}")
+    per_month = np.count_nonzero(~np.isnan(v.reshape(-1, period)), axis=0)
+    if per_month.max() < 2:
+        raise ValueError("the seasonal test needs at least one calendar month with 2 or more "
+                         "non-NaN values (at least two years of data for that month)")
     res = pmk.seasonal_test(v, period=period, alpha=alpha)
     return _mk_result(res, test="seasonal", alpha=alpha, n=n, lag=None, period=period)
 
