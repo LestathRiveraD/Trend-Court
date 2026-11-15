@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import type { Data, Layout } from "plotly.js-dist-min";
+import { useEffect, useState } from "react";
 import { loadCase, loadIndex, type CaseFile, type IndexCase, type IndexFile } from "./data";
-import Plot from "./Plot";
+import Evidence from "./Evidence";
 
 type Status<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; value: T };
 
@@ -105,42 +104,6 @@ function CaseList({ index, selected, onSelect }: { index: IndexFile; selected: I
         </button>
       ))}
     </div>
-  );
-}
-
-/** Placeholder evidence panel: Clerk text and the anomaly series. Replaced by #24. */
-function Evidence({ c }: { c: CaseFile }) {
-  const data = useMemo<Data[]>(
-    () => [
-      {
-        x: c.series.months,
-        y: c.series.anomaly,
-        type: "scatter",
-        mode: "lines",
-        connectgaps: false,
-        line: { color: "#4B3BFF", width: 1.5 },
-        hovertemplate: `%{x}: %{y:.2f} ${c.provenance.units}<extra></extra>`,
-      },
-    ],
-    [c],
-  );
-  const layout = useMemo<Partial<Layout>>(
-    () => ({
-      height: 280,
-      margin: { l: 48, r: 12, t: 8, b: 32 },
-      paper_bgcolor: "rgba(0,0,0,0)",
-      plot_bgcolor: "rgba(0,0,0,0)",
-      font: { family: "DM Mono, ui-monospace, monospace", size: 11, color: "#5A5F86" },
-      xaxis: { gridcolor: "#E6EAF8" },
-      yaxis: { gridcolor: "#E6EAF8", zerolinecolor: "#CBD3F2", title: { text: `Anomaly (${c.provenance.units})` } },
-    }),
-    [c],
-  );
-  return (
-    <>
-      <p className="clerk">{c.provenance.clerk_text}</p>
-      <Plot data={data} layout={layout} label={`Monthly ${c.variable} anomaly, ${c.provenance.region_name}, ${c.provenance.period}`} />
-    </>
   );
 }
 
