@@ -35,7 +35,7 @@ import math
 import os
 
 import numpy as np
-from scipy import signal
+from scipy import signal, stats
 
 from trendcourt import benchmark, examiner
 
@@ -61,6 +61,13 @@ ASSUMPTION = (
     "from the end of the record."
 )
 """The wording the case JSON carries in ``clock.assumption``."""
+
+NO_CLAIM = (
+    "No simulation: this record's autocorrelation is too high for any p-value "
+    "to count as evidence, and the Clock assumes the noise stays like the "
+    "record's, so no amount of extra data would give a verdict."
+)
+"""``clock.assumption`` when the record's band allows no significance claim."""
 
 
 def _noise_fit(t: np.ndarray, y: np.ndarray, ts) -> tuple[float, float, float]:
@@ -118,12 +125,69 @@ def _init_worker(y: np.ndarray, futures: np.ndarray, alpha: float) -> None:
     _WORKER.update(y=y, futures=futures, alpha=alpha)
 
 
+def hamed_rao_p(y) -> float:
+    """The p-value of :func:`examiner.mk_hamed_rao` (defaults: alpha 0.05, ``lag=3``), faster.
+
+    The same arithmetic as ``pymannkendall.hamed_rao_modification_test``
+    1.4.3, which that wrapper calls, vectorized over pair offsets instead of
+    looped over pairs: S from the signs of all pairwise differences, Var(S)
+    with the tie correction, Sen's slope as the median of
+    ``(x[j] - x[i]) / (j - i)``, ranks of ``x - (1..n) * slope``, the first
+    3 autocorrelations of those ranks with the 95% filter, and the normal
+    two-sided p. Every element goes through the same floating-point
+    operations, so the p is bit-identical (``tests/test_clock.py`` checks
+    it against ``examiner.mk_hamed_rao``); the speed-up (about 1.8x at
+    45-145 years) is what keeps the Clock inside its time budget.
+
+    Series with missing values, and every input that wrapper would reject,
+    go to :func:`examiner.mk_hamed_rao` itself.
+    """
+    x = np.asarray(y, dtype=float)
+    n = x.size
+    if x.ndim != 1 or n < 5 or not np.isfinite(x).all():
+        return examiner.mk_hamed_rao(x).p
+    s = 0
+    slopes = np.empty(n * (n - 1) // 2)
+    pos = 0
+    for d in range(1, n):
+        diff = x[d:] - x[:-d]
+        s += int(np.count_nonzero(diff > 0)) - int(np.count_nonzero(diff < 0))
+        slopes[pos: pos + diff.size] = diff / d
+        pos += diff.size
+    unique, counts = np.unique(x, return_counts=True)
+    if unique.size == n:
+        var_s = (n * (n - 1) * (2 * n + 5)) / 18
+    else:
+        tp = counts.astype(float)
+        var_s = (n * (n - 1) * (2 * n + 5) - np.sum(tp * (tp - 1) * (2 * tp + 5))) / 18
+    ranks = stats.rankdata(x - np.arange(1, n + 1) * np.median(slopes))
+    dev = ranks - ranks.mean()
+    acov = (np.correlate(dev, dev, "full") / (n * np.ones(2 * n - 1)))[n - 1:]
+    with np.errstate(invalid="ignore", divide="ignore"):  # constant ranks: NaN, then the examiner raises
+        acf = acov[: _LAG + 1] / acov[0]
+    bound = stats.norm.ppf(1 - _FILTER_ALPHA / 2) / np.sqrt(n)
+    sni = 0
+    for i in range(1, _LAG + 1):
+        if not (acf[i] <= bound and acf[i] >= -bound):
+            sni += (n - i) * (n - i - 1) * (n - i - 2) * acf[i]
+    var_s = var_s * (1 + (2 / (n * (n - 1) * (n - 2))) * sni)
+    if not (np.isfinite(var_s) and var_s > 0):
+        return examiner.mk_hamed_rao(x).p  # raises, as a real case would
+    z = (s - 1) / np.sqrt(var_s) if s > 0 else (s + 1) / np.sqrt(var_s) if s < 0 else 0
+    return float(2 * (1 - stats.norm.cdf(abs(z))))
+
+
+_LAG = 3
+_FILTER_ALPHA = 0.05
+"""``examiner.mk_hamed_rao`` defaults, which a real case uses."""
+
+
 def _significant(task: tuple[int, int]) -> bool:
     """Simulation ``i`` extended by ``k`` years reaches ``p < alpha``."""
     i, k = task
     w = _WORKER
     series = np.concatenate([w["y"], w["futures"][i, : 12 * k]])
-    return bool(examiner.mk_hamed_rao(series).p < w["alpha"])
+    return hamed_rao_p(series) < w["alpha"]
 
 
 def default_workers() -> int:
@@ -156,9 +220,12 @@ def years_to_verdict(t, anomalies, ts, *, alpha: float, horizon_years: int = HOR
 
     Each point is found by a doubling search on ``k`` (1, 2, 4, ...)
     followed by bisection, valid because the share of significant
-    simulations rises with ``k``. Each share is counted in simulation order
-    and stops as soon as the comparison with the target share is decided,
-    which gives the same answer as counting every simulation. ``workers``
+    simulations rises with ``k``, in two stages: the first
+    :data:`PILOT_SIMS` simulations locate it, then all ``n_sims`` settle it
+    starting from that guess. Only the second stage decides the answer.
+    Each share is counted in simulation order and stops as soon as the
+    comparison with the target share is decided, which gives the same
+    answer as counting every simulation. The test is :func:`hamed_rao_p`. ``workers``
     (default :func:`default_workers`) processes run the tests; the result
     does not depend on it.
     """

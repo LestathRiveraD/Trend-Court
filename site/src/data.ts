@@ -154,6 +154,24 @@ export interface Autocorrelation {
   r1_detrended: number;
 }
 
+/** Years to verdict for an Inconclusive case (`trendcourt/clock.py`, issue #45). */
+export interface Clock {
+  /** Fewest added years at which at least 50% of the simulations reach p < `alpha`; `null` beyond `horizon_years` or when nothing was simulated. */
+  years_median: number | null;
+  /** The same for 80% of the simulations. */
+  years_p80: number | null;
+  /** True when the 50% point is beyond `horizon_years`, or no record length could give a verdict. */
+  beyond_horizon: boolean;
+  /** The band's Moderate cut-off; `null` when the band allows no significance claim. */
+  alpha: number | null;
+  horizon_years: number;
+  /** 0 when nothing was simulated. */
+  n_sims: number;
+  seed: number;
+  /** The assumption behind the numbers, to print with them. */
+  assumption: string;
+}
+
 export interface CaseFile {
   schema_version: number;
   region: string;
@@ -170,6 +188,8 @@ export interface CaseFile {
   /** `null` when the record fails the quality gate. */
   autocorrelation: Autocorrelation | null;
   verdict: Verdict;
+  /** Inconclusive cases only, `null` otherwise. Optional until schema 3 (#41) makes it required. */
+  clock?: Clock | null;
 }
 
 // ---------------------------------------------------------------------------

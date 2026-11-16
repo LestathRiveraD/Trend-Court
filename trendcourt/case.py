@@ -19,10 +19,13 @@ import sys
 
 import pandas as pd
 
-from trendcourt import benchmark, clerk, examiner, thresholds, verdict
+from trendcourt import benchmark, clerk, clock, examiner, thresholds, verdict
 
 SCHEMA_VERSION = 2
-"""Version 2: ``autocorrelation`` and ``verdict`` blocks (verdict module v0, issue #20)."""
+"""Version 2: ``autocorrelation`` and ``verdict`` blocks (verdict module v0, issue #20).
+
+The ``clock`` block (issue #45) landed before the Phase 3 bump (#41), so
+it joins schema 3 there rather than bumping the version itself."""
 
 
 def _month(ts: pd.Timestamp | None) -> str | None:
@@ -92,6 +95,10 @@ def examine(region: str, variable: str) -> dict:
     (``benchmark.detrended_r1``, the ``r1`` the thresholds' band rule
     reads), and ``verdict``, :func:`trendcourt.verdict.decide` on the case
     with ``thresholds.load()``. Neither changes any other number.
+
+    Last, ``clock``: for an Inconclusive verdict, :func:`clock_block` (years
+    of further data until the trend would likely be significant); ``None``
+    for every other label.
     """
     prepared = clerk.prepare(region, variable)
     quality = prepared.quality
@@ -119,6 +126,7 @@ def examine(region: str, variable: str) -> dict:
     }
     if not quality.passed:
         case["verdict"] = verdict.decide(case, thresholds.load())
+        case["clock"] = None
         return case
 
     t, anomalies = prepared.time, prepared.anomalies
@@ -133,8 +141,42 @@ def examine(region: str, variable: str) -> dict:
         consistency=examiner.consistency(mk, smk),
         autocorrelation={"r1_detrended": benchmark.detrended_r1(t, anomalies, ts)},
     )
-    case["verdict"] = verdict.decide(case, thresholds.load())
+    th = thresholds.load()
+    case["verdict"] = verdict.decide(case, th)
+    case["clock"] = None
+    if case["verdict"]["label"] == "inconclusive":
+        case["clock"] = clock_block(region, variable, t, anomalies, ts,
+                                    case["autocorrelation"]["r1_detrended"], th)
     return case
+
+
+def clock_block(region: str, variable: str, t, anomalies, ts, r1: float, th: dict) -> dict:
+    """The ``clock`` block of an Inconclusive case (issue #45).
+
+    :func:`trendcourt.clock.years_to_verdict` with ``alpha`` the
+    ``moderate_alpha`` of the record's autocorrelation band and the seed
+    ``benchmark.case_seed_key(region, variable)``. When the band allows no
+    significance claim (``moderate_alpha`` is ``None``, or ``r1`` is above
+    the benchmark grid), no record length can give a verdict under the
+    Clock's assumption, so nothing is simulated: ``beyond_horizon`` is true,
+    the year counts and ``alpha`` are ``None``, ``n_sims`` is 0, and
+    ``assumption`` says why.
+    """
+    band = thresholds.band_for(r1, th)
+    alpha = None if band is None else band["moderate_alpha"]
+    seed = benchmark.case_seed_key(region, variable)
+    if alpha is None:
+        return {
+            "years_median": None,
+            "years_p80": None,
+            "beyond_horizon": True,
+            "alpha": None,
+            "horizon_years": clock.HORIZON_YEARS,
+            "n_sims": 0,
+            "seed": seed,
+            "assumption": clock.NO_CLAIM,
+        }
+    return clock.years_to_verdict(t, anomalies, ts, alpha=alpha, seed=seed)
 
 
 def to_json(case: dict) -> str:
