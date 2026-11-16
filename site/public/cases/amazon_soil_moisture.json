@@ -2,6 +2,16 @@
   "autocorrelation": {
     "r1_detrended": 0.8895318924032422
   },
+  "clock": {
+    "alpha": null,
+    "assumption": "No simulation: this record's autocorrelation is too high for any p-value to count as evidence, and the Clock assumes the noise stays like the record's, so no amount of extra data would give a verdict.",
+    "beyond_horizon": true,
+    "horizon_years": 100,
+    "n_sims": 0,
+    "seed": 3849859492,
+    "years_median": null,
+    "years_p80": null
+  },
   "consistency": {
     "agree": true,
     "alpha": 0.05,
