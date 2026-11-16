@@ -2,6 +2,7 @@
   "autocorrelation": {
     "r1_detrended": 0.4274259209527135
   },
+  "clock": null,
   "consistency": {
     "agree": true,
     "alpha": 0.05,

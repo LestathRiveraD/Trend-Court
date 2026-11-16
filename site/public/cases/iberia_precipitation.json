@@ -2,6 +2,16 @@
   "autocorrelation": {
     "r1_detrended": 0.15187860014835525
   },
+  "clock": {
+    "alpha": 0.05,
+    "assumption": "Assumes the trend continues at the current Theil-Sen rate, and that the noise around it stays like the record's: AR(1), with the lag-1 autocorrelation and the standard deviation of the anomalies after removing the Theil-Sen line. Each simulation adds future years to the observed record and reruns the same Hamed-Rao test. The years are counted from the end of the record.",
+    "beyond_horizon": false,
+    "horizon_years": 100,
+    "n_sims": 500,
+    "seed": 73308176,
+    "years_median": 37,
+    "years_p80": 49
+  },
   "consistency": {
     "agree": true,
     "alpha": 0.05,
